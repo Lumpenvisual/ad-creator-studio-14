@@ -14,7 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      banners: {
+        Row: {
+          accent_color: string | null
+          body_text: string | null
+          created_at: string
+          font_family: string | null
+          format: string | null
+          headline: string | null
+          id: string
+          image_url: string | null
+          model: string | null
+          name: string
+          primary_color: string | null
+          prompt: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accent_color?: string | null
+          body_text?: string | null
+          created_at?: string
+          font_family?: string | null
+          format?: string | null
+          headline?: string | null
+          id?: string
+          image_url?: string | null
+          model?: string | null
+          name?: string
+          primary_color?: string | null
+          prompt?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accent_color?: string | null
+          body_text?: string | null
+          created_at?: string
+          font_family?: string | null
+          format?: string | null
+          headline?: string | null
+          id?: string
+          image_url?: string | null
+          model?: string | null
+          name?: string
+          primary_color?: string | null
+          prompt?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          credits: number
+          display_name: string | null
+          email: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credits?: number
+          display_name?: string | null
+          email?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credits?: number
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
