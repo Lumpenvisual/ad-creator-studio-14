@@ -17,7 +17,7 @@ function SignupPage() {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => { if (user) navigate({ to: "/editor" }); }, [user, navigate]);
+  useEffect(() => { if (user) navigate({ to: "/dashboard" }); }, [user, navigate]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,7 +26,7 @@ function SignupPage() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/editor`,
+        emailRedirectTo: `${window.location.origin}/dashboard`,
         data: { display_name: name },
       },
     });
@@ -41,8 +41,8 @@ function SignupPage() {
       <div className="hidden lg:flex bg-primary text-primary-foreground p-12 flex-col justify-between">
         <Link to="/" className="font-serif text-2xl">Vellum Studio</Link>
         <div>
-          <p className="font-serif text-4xl text-balance leading-tight">5 free generations to get you started.</p>
-          <p className="mt-4 text-sm opacity-70">Top up later with credit packs — pay only for what you make.</p>
+          <p className="font-serif text-4xl text-balance leading-tight">5 generaciones gratuitas para empezar.</p>
+          <p className="mt-4 text-sm opacity-70">Crea, edita y exporta banners publicitarios con IA.</p>
         </div>
       </div>
       <div className="flex items-center justify-center p-8">

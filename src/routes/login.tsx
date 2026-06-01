@@ -17,7 +17,7 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => { if (user) navigate({ to: "/editor" }); }, [user, navigate]);
+  useEffect(() => { if (user) navigate({ to: "/dashboard" }); }, [user, navigate]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,7 +26,7 @@ function LoginPage() {
     setLoading(false);
     if (error) return toast.error(error.message);
     toast.success("Welcome back");
-    navigate({ to: "/editor" });
+    navigate({ to: "/dashboard" });
   }
 
   return (
