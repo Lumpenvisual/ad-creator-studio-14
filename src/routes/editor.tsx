@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useServerFn } from "@tanstack/react-start";
@@ -138,16 +138,19 @@ function Editor() {
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          <span className="font-serif text-2xl">Vellum Studio</span>
+          <Link to="/dashboard" className="font-serif text-2xl">Vellum Studio</Link>
           <div className="flex items-center gap-4">
+            <Link to="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              ← Dashboard
+            </Link>
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-surface-muted rounded-full ring-1 ring-border">
               <span className="size-1.5 rounded-full bg-accent animate-pulse" />
               <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                {profile?.credits ?? "…"} credits
+                {profile?.credits ?? "…"} créditos
               </span>
             </div>
             <Button variant="ghost" size="sm" onClick={signOut}>
-              <LogOut className="size-4" /> Sign out
+              <LogOut className="size-4" /> Salir
             </Button>
           </div>
         </div>
