@@ -127,7 +127,7 @@ function Editor() {
   }
 
   async function handleExport(fmt: Format) {
-    if (!imageUrl) return toast.error("Generate a background first.");
+    if (!imageUrl) return toast.error(t("editor.toast.noBg"));
     setExporting(true);
     try {
       const url = await renderToDataUrl(fmt);
@@ -135,31 +135,31 @@ function Editor() {
       a.href = url;
       a.download = `banner-${fmt}-${Date.now()}.png`;
       a.click();
-      toast.success("Downloaded");
+      toast.success(t("editor.toast.downloaded"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Export failed");
+      toast.error(e instanceof Error ? e.message : "Error");
     } finally { setExporting(false); }
   }
 
   async function handleUploadDrive(fmt: Format) {
-    if (!imageUrl) return toast.error("Generate a background first.");
+    if (!imageUrl) return toast.error(t("editor.toast.noBg"));
     if (!drive?.connected) {
-      toast.error("Conecta Google Drive desde el Dashboard primero.");
+      toast.error(t("editor.toast.driveNotConnected"));
       return;
     }
     setExporting(true);
-    const tId = toast.loading("Subiendo a Google Drive…");
+    const tId = toast.loading(t("editor.toast.uploading"));
     try {
       const dataUrl = await renderToDataUrl(fmt);
       const base64 = dataUrl.split(",")[1];
       const filename = `banner-${fmt}-${Date.now()}.png`;
       const res = await uploadDrive({ data: { filename, imageBase64: base64 } });
-      toast.success("Subido a Google Drive", {
+      toast.success(t("editor.toast.uploaded"), {
         id: tId,
-        action: { label: "Abrir", onClick: () => window.open(res.webViewLink, "_blank") },
+        action: { label: t("editor.toast.open"), onClick: () => window.open(res.webViewLink, "_blank") },
       });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Upload failed", { id: tId });
+      toast.error(e instanceof Error ? e.message : "Error", { id: tId });
     } finally { setExporting(false); }
   }
 
