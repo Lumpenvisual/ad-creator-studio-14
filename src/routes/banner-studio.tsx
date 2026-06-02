@@ -714,7 +714,7 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
           </Card>
 
           {/* AI Background Generator */}
-          <Card className="p-5 border-neutral-200 space-y-3">
+          <Card className="p-6 border-neutral-200/70 glass-card space-y-4">
             <div className="flex items-center gap-2">
               <Sparkles className="size-4" style={{ color: GREEN }} />
               <p className="text-[10px] uppercase tracking-widest text-neutral-500">Fondo generado por IA</p>
