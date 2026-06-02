@@ -233,11 +233,13 @@ function PdfDropzone({ current, onChanged }: { current?: AssetRow; onChanged: ()
   const upsertFn = useServerFn(upsertBrandAsset);
   const delFn = useServerFn(deleteBrandAsset);
 
-  const upload = useCallback(async (files: FileList) => {
+  const upload = useCallback(async (files: FileList | File[]) => {
     const file = files[0];
     if (!file) return;
-    if (file.type !== "application/pdf") return toast.error("Solo archivos PDF");
-    if (file.size > 15 * 1024 * 1024) return toast.error("Máx 15 MB");
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      return toast.error("Formato no válido. Por favor, suba el Manual de Marca en formato PDF.");
+    }
+    if (file.size > 15 * 1024 * 1024) return toast.error("El archivo supera los 15 MB.");
     setBusy(true);
     try {
       const path = `manual_pdf/${Date.now()}.pdf`;
@@ -258,18 +260,24 @@ function PdfDropzone({ current, onChanged }: { current?: AssetRow; onChanged: ()
 
   return (
     <label
-      onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
-      onDragLeave={() => setDrag(false)}
+      onDragOver={(e) => { e.preventDefault(); if (!drag) setDrag(true); }}
+      onDragLeave={(e) => { e.preventDefault(); setDrag(false); }}
       onDrop={(e) => { e.preventDefault(); setDrag(false); if (e.dataTransfer.files?.length) upload(e.dataTransfer.files); }}
       className={cn(
-        "relative block rounded-xl border-2 border-dashed p-6 cursor-pointer transition bg-white",
-        drag ? "border-[color:var(--g)] bg-emerald-50/40" : "border-neutral-200 hover:border-neutral-300",
+        "relative block rounded-xl border-2 border-dashed p-6 cursor-pointer transition-all duration-300 ease-out glass-card",
+        drag ? "border-[color:var(--g)] bg-emerald-50/60 dropzone-active" : "border-neutral-200/80 hover:border-neutral-300",
       )}
       style={{ ["--g" as any]: GREEN }}
     >
       <input type="file" accept="application/pdf" className="hidden" onChange={(e) => e.target.files && upload(e.target.files)} />
       {busy ? (
-        <div className="flex items-center gap-3 text-sm text-neutral-600"><Loader2 className="size-4 animate-spin" /> Procesando…</div>
+        <div className="space-y-2">
+          <div className="flex items-center gap-3 text-sm text-neutral-700">
+            <Loader2 className="size-4 animate-spin" style={{ color: GREEN }} />
+            Sincronizando con los activos del Manual de Marca…
+          </div>
+          <div className="h-[2px] w-full rounded-full overflow-hidden bg-emerald-100/70"><div className="sync-line h-full w-full" /></div>
+        </div>
       ) : current ? (
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
@@ -291,9 +299,9 @@ function PdfDropzone({ current, onChanged }: { current?: AssetRow; onChanged: ()
           </Button>
         </div>
       ) : (
-        <div className="text-center py-4">
-          <UploadCloud className="size-7 mx-auto mb-2 text-neutral-400" />
-          <p className="text-sm font-medium">Adjuntar Manual de Marca (.PDF)</p>
+        <div className="text-center py-4 transition-transform" style={{ transform: drag ? "scale(1.02)" : "scale(1)" }}>
+          <UploadCloud className={cn("size-7 mx-auto mb-2 transition-colors", drag ? "" : "text-neutral-400")} style={drag ? { color: GREEN } : undefined} />
+          <p className="text-sm font-medium">{drag ? "Suelta el PDF aquí" : "Adjuntar Manual de Marca (.PDF)"}</p>
           <p className="text-xs text-neutral-500 mt-1">Arrastra o haz clic — máx 15 MB</p>
         </div>
       )}
