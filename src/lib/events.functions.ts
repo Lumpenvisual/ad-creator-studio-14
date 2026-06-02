@@ -22,12 +22,13 @@ export const getMyRoles = createServerFn({ method: "GET" })
 export const claimAdminIfFirst = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { count } = await context.supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { count } = await supabaseAdmin
       .from("user_roles")
       .select("*", { count: "exact", head: true })
       .eq("role", "admin");
     if ((count ?? 0) > 0) return { claimed: false };
-    const { error } = await context.supabase
+    const { error } = await supabaseAdmin
       .from("user_roles")
       .insert({ user_id: context.userId, role: "admin" });
     if (error) throw new Error(error.message);

@@ -103,7 +103,7 @@ function EventsPage() {
             </p>
           </div>
           <Button asChild>
-            <Link to="/events/new"><Plus className="size-4" /> Nuevo evento</Link>
+            <Link to="/difusion"><Plus className="size-4" /> Nueva solicitud</Link>
           </Button>
         </div>
 
@@ -117,7 +117,7 @@ function EventsPage() {
           <div className="text-center py-20 ring-1 ring-border rounded-2xl bg-surface-muted/30">
             <p className="font-serif text-2xl mb-2">Ningún evento todavía</p>
             <p className="text-sm text-muted-foreground mb-6">Crea tu primer evento para generar contenido.</p>
-            <Button asChild><Link to="/events/new"><Plus className="size-4" /> Crear evento</Link></Button>
+            <Button asChild><Link to="/difusion"><Plus className="size-4" /> Crear solicitud</Link></Button>
           </div>
         ) : (
           <ul className="space-y-3">
