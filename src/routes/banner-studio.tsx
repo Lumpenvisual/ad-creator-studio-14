@@ -652,7 +652,90 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
               <Input value={place} onChange={(e) => setPlace(e.target.value)} className="mt-1" />
             </div>
           </Card>
+
+          {/* AI Background Generator */}
+          <Card className="p-5 border-neutral-200 space-y-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="size-4" style={{ color: GREEN }} />
+              <p className="text-[10px] uppercase tracking-widest text-neutral-500">Fondo generado por IA</p>
+            </div>
+
+            <div>
+              <Label className="text-[11px]">Modelo de generación</Label>
+              <Select value={aiModel} onValueChange={(v) => setAiModel(v as ImageModel)}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {IMAGE_MODELS.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{m.label}</span>
+                        <span
+                          className="text-[9px] px-1.5 py-0.5 rounded-full"
+                          style={{
+                            background: m.free ? "#dcfce7" : "#f1f5f9",
+                            color: m.free ? GREEN_DARK : "#475569",
+                          }}
+                        >
+                          {m.tag}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-neutral-500 mt-1">
+                Gemini vía Lovable AI Gateway: gratuito en el plan incluido. GPT Image consume créditos.
+              </p>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between">
+                <Label className="text-[11px]">Prompt</Label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleAssist}
+                      disabled={assistBusy}
+                      className="h-7 text-[11px]"
+                    >
+                      {assistBusy ? <Loader2 className="size-3 animate-spin" /> : <Wand2 className="size-3" />}
+                      Asistente
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Genera un prompt automáticamente usando los datos del evento.</TooltipContent>
+                </Tooltip>
+              </div>
+              <Textarea
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                placeholder="Ej: fondo abstracto verde institucional con formas geométricas sutiles y espacio negativo en la parte inferior..."
+                rows={4}
+                className="mt-1 text-[12px]"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleGenerate}
+                disabled={aiBusy}
+                style={{ background: GREEN }}
+                className="text-white hover:opacity-90 flex-1"
+              >
+                {aiBusy ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+                Generar fondo
+              </Button>
+              {bgUrl && (
+                <Button type="button" variant="outline" onClick={() => setBgUrl(null)} className="text-[11px]">
+                  Quitar
+                </Button>
+              )}
+            </div>
+          </Card>
         </div>
+
 
         {/* Preview */}
         <div className="space-y-3">
