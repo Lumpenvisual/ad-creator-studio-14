@@ -155,6 +155,13 @@ function BrandProfilePage() {
               ? "Estas directrices alimentarán todos tus banners. Cada respuesta se convierte en una regla que la IA respetará."
               : "These guidelines will feed every banner you generate. Each answer becomes a rule the AI will respect."}
           </p>
+          <Link
+            to="/brand/extract"
+            className="inline-flex items-center gap-2 mt-5 text-sm text-accent hover:underline"
+          >
+            <Sparkles className="size-3.5" />
+            {es ? "¿Tienes un PDF de brand guidelines? Extráelo con IA →" : "Have a brand guidelines PDF? Extract with AI →"}
+          </Link>
         </div>
 
         {/* Stepper */}
