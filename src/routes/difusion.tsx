@@ -145,8 +145,26 @@ function DifusionPage() {
       return id;
     },
     onSuccess: (id) => {
-      toast.success("Solicitud creada");
-      navigate({ to: "/events/$id", params: { id } });
+      toast.success("Solicitud creada — abriendo generador de banner");
+      const map: Record<string, "rituales" | "academico" | "merchandising"> = {
+        rituales: "rituales",
+        academicas: "academico",
+        extension: "academico",
+        promocionales: "merchandising",
+      };
+      const eventType = map[form.category] ?? "rituales";
+      const dateLabel = [form.date, form.time].filter(Boolean).join(" · ");
+      navigate({
+        to: "/banner-studio",
+        search: {
+          eventId: id,
+          title: form.eventName,
+          date: dateLabel || undefined,
+          place: form.location || undefined,
+          eventType,
+          view: "creator",
+        },
+      });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Error al enviar"),
   });
