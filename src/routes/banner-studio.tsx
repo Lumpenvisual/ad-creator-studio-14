@@ -470,6 +470,22 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
   const palette = PALETTE.find((p) => p.id === paletteId)!;
   const logo = byKind[evt.required];
 
+  // Sanitization: trim whitespace to avoid breaking canvas alignment
+  const titleClean = useMemo(() => title.replace(/\s+/g, " ").trim(), [title]);
+  const dateClean = useMemo(() => date.trim(), [date]);
+  const placeClean = useMemo(() => place.trim(), [place]);
+
+  // Safety guard-rail: dynamic font-scale + overflow warning
+  const TITLE_SAFE_MAX = 70; // chars before considered too long
+  const overLimit = titleClean.length > TITLE_SAFE_MAX;
+  const scaleFactor = useMemo(() => {
+    const len = titleClean.length;
+    if (len <= 40) return 1;
+    if (len <= 60) return 0.88;
+    if (len <= 90) return 0.74;
+    return 0.62; // minimum safe size
+  }, [titleClean]);
+
   async function handleAssist() {
     setAssistBusy(true);
     try {
