@@ -272,10 +272,14 @@ export const generateEventContent = createServerFn({ method: "POST" })
     let copy: CopyOutput | null = null;
     let retryHint = "";
 
+    const answers = (event.answers && typeof event.answers === "object" && !Array.isArray(event.answers)
+      ? event.answers
+      : {}) as Record<string, unknown>;
+
     try {
       while (attempt < MAX_ATTEMPTS) {
         attempt++;
-        const prompt = buildPrompt(brand as BrandProfile, { name: event.name, answers: event.answers ?? {} }, retryHint);
+        const prompt = buildPrompt(brand as BrandProfile, { name: event.name, answers }, retryHint);
         const out = await callTextAI(prompt);
         const warnings = validateCopy(out, brand as BrandProfile);
         lastWarnings = warnings;
@@ -289,7 +293,7 @@ export const generateEventContent = createServerFn({ method: "POST" })
       // Subir a Drive (si hay conexión)
       let driveFile: { id: string; url: string; folderId: string; folderUrl: string } | null = null;
       try {
-        driveFile = await uploadBriefToDrive(supabase, userId, event, brand as BrandProfile, finalCopy, lastWarnings);
+        driveFile = await uploadBriefToDrive(supabase, userId, { id: event.id, name: event.name, answers }, brand as BrandProfile, finalCopy, lastWarnings);
       } catch (e) {
         console.warn("Drive upload skipped:", e);
       }
@@ -299,7 +303,7 @@ export const generateEventContent = createServerFn({ method: "POST" })
         user_id: userId,
         headlines: finalCopy.headlines,
         bodies: finalCopy.bodies,
-        format: event.answers?.format ?? "square",
+        format: typeof answers.format === "string" ? answers.format : "square",
         validation_warnings: lastWarnings,
         passed_validation: passed,
         attempt_number: attempt,
