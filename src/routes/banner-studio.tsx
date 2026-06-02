@@ -23,8 +23,25 @@ import { cn } from "@/lib/utils";
 import { getMyRoles } from "@/lib/events.functions";
 import { listBrandAssets, upsertBrandAsset, deleteBrandAsset, listCategoryRules } from "@/lib/governance.functions";
 
+type BannerSearch = {
+  eventId?: string;
+  title?: string;
+  date?: string;
+  place?: string;
+  eventType?: "rituales" | "academico" | "merchandising";
+  view?: "admin" | "creator";
+};
+
 export const Route = createFileRoute("/banner-studio")({
   head: () => ({ meta: [{ title: "Banner Studio — Marca Institucional" }] }),
+  validateSearch: (s: Record<string, unknown>): BannerSearch => ({
+    eventId: typeof s.eventId === "string" ? s.eventId : undefined,
+    title: typeof s.title === "string" ? s.title : undefined,
+    date: typeof s.date === "string" ? s.date : undefined,
+    place: typeof s.place === "string" ? s.place : undefined,
+    eventType: s.eventType === "rituales" || s.eventType === "academico" || s.eventType === "merchandising" ? s.eventType : undefined,
+    view: s.view === "admin" || s.view === "creator" ? s.view : undefined,
+  }),
   component: BannerStudio,
 });
 
@@ -49,8 +66,9 @@ type AssetRow = {
 function BannerStudio() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const search = Route.useSearch();
   const rolesFn = useServerFn(getMyRoles);
-  const [view, setView] = useState<"admin" | "creator">("creator");
+  const [view, setView] = useState<"admin" | "creator">(search.view ?? "creator");
 
   useEffect(() => { if (!loading && !user) navigate({ to: "/login" }); }, [loading, user, navigate]);
 
@@ -107,7 +125,7 @@ function BannerStudio() {
 
         <main className="max-w-7xl mx-auto px-6 py-8">
           {view === "admin" && (canManage ? <AdminView /> : <Restricted />)}
-          {view === "creator" && <CreatorView />}
+          {view === "creator" && <CreatorView prefill={search} />}
         </main>
       </div>
     </TooltipProvider>
@@ -397,18 +415,18 @@ const PALETTE = [
   { id: "black", label: "Negro", bg: BLACK, fg: WHITE },
 ] as const;
 
-function CreatorView() {
+function CreatorView({ prefill }: { prefill?: BannerSearch }) {
   const listAssetsFn = useServerFn(listBrandAssets);
   const { data: assetsData } = useQuery({ queryKey: ["brand_assets"], queryFn: () => listAssetsFn() });
   const assets = (assetsData?.assets ?? []) as AssetRow[];
   const byKind = useMemo(() => Object.fromEntries(assets.map((a) => [a.kind, a])), [assets]);
 
   const [format, setFormat] = useState<Format>("square");
-  const [eventType, setEventType] = useState<EventType>("rituales");
+  const [eventType, setEventType] = useState<EventType>(prefill?.eventType ?? "rituales");
   const [paletteId, setPaletteId] = useState<typeof PALETTE[number]["id"]>("green");
-  const [title, setTitle] = useState("Ceremonia de Grados 2026");
-  const [date, setDate] = useState("15 Junio · 4:00 p.m.");
-  const [place, setPlace] = useState("Teatro Universitario · UdeA");
+  const [title, setTitle] = useState(prefill?.title ?? "Ceremonia de Grados 2026");
+  const [date, setDate] = useState(prefill?.date ?? "15 Junio · 4:00 p.m.");
+  const [place, setPlace] = useState(prefill?.place ?? "Teatro Universitario · UdeA");
   const [downloading, setDownloading] = useState(false);
 
   const canvasRef = useRef<HTMLDivElement>(null);
