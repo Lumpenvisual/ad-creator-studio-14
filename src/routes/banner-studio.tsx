@@ -66,8 +66,9 @@ type AssetRow = {
 function BannerStudio() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const search = Route.useSearch();
   const rolesFn = useServerFn(getMyRoles);
-  const [view, setView] = useState<"admin" | "creator">("creator");
+  const [view, setView] = useState<"admin" | "creator">(search.view ?? "creator");
 
   useEffect(() => { if (!loading && !user) navigate({ to: "/login" }); }, [loading, user, navigate]);
 
