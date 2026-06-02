@@ -15,6 +15,7 @@ import {
   getGoogleConnectionStatus,
   disconnectGoogle,
 } from "@/lib/google-drive.functions";
+import { useI18n, LanguageSwitcher } from "@/lib/i18n";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
