@@ -151,25 +151,27 @@ function Dashboard() {
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link to="/dashboard" className="font-serif text-2xl">Vellum Studio</Link>
-          <div className="flex items-center gap-4">
+          <Link to="/dashboard" className="font-serif text-2xl">{t("brand")}</Link>
+          <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-surface-muted rounded-full ring-1 ring-border">
               <span className="size-1.5 rounded-full bg-accent animate-pulse" />
               <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                {profile?.credits ?? "…"} créditos
+                {profile?.credits ?? "…"} {t("nav.credits")}
               </span>
             </div>
+            <LanguageSwitcher />
             {drive?.connected ? (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  if (confirm(`¿Desconectar Google Drive${drive.email ? ` (${drive.email})` : ""}?`)) {
+                  const emailPart = drive.email ? ` (${drive.email})` : "";
+                  if (confirm(t("dash.confirm.disconnect", { email: emailPart }))) {
                     disconnectMut.mutate();
                   }
                 }}
               >
-                <Check className="size-4" /> Drive conectado
+                <Check className="size-4" /> {t("nav.driveConnected")}
               </Button>
             ) : (
               <Button
@@ -178,11 +180,11 @@ function Dashboard() {
                 onClick={() => connectMut.mutate()}
                 disabled={connectMut.isPending}
               >
-                <HardDrive className="size-4" /> Conectar Drive
+                <HardDrive className="size-4" /> {t("nav.connectDrive")}
               </Button>
             )}
             <Button variant="ghost" size="sm" onClick={signOut}>
-              <LogOut className="size-4" /> Salir
+              <LogOut className="size-4" /> {t("nav.signOut")}
             </Button>
           </div>
         </div>
@@ -191,13 +193,13 @@ function Dashboard() {
       <main className="max-w-7xl mx-auto px-6 py-10">
         <div className="flex items-end justify-between mb-8 flex-wrap gap-4">
           <div>
-            <h1 className="font-serif text-4xl md:text-5xl">Tus banners</h1>
+            <h1 className="font-serif text-4xl md:text-5xl">{t("dash.title")}</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              {banners?.length ?? 0} {banners?.length === 1 ? "banner guardado" : "banners guardados"}
+              {banners?.length ?? 0} {banners?.length === 1 ? t("dash.countOne") : t("dash.countMany")}
             </p>
           </div>
           <Button onClick={() => navigate({ to: "/editor" })}>
-            <Plus className="size-4" /> Nuevo banner
+            <Plus className="size-4" /> {t("dash.new")}
           </Button>
         </div>
 
@@ -218,7 +220,7 @@ function Dashboard() {
                 onOpen={() => navigate({ to: "/editor" })}
                 onDuplicate={() => duplicateMut.mutate(b)}
                 onDelete={() => {
-                  if (confirm(`¿Eliminar "${b.name}"?`)) deleteMut.mutate(b.id);
+                  if (confirm(t("dash.confirm.delete", { name: b.name }))) deleteMut.mutate(b.id);
                 }}
               />
             ))}
