@@ -312,7 +312,7 @@ function Editor() {
                   <img src={imageUrl} alt="" className="absolute inset-0 size-full object-cover" />
                 ) : (
                   <div className="absolute inset-0 grid place-items-center text-xs uppercase tracking-widest text-muted-foreground">
-                    {generating ? "Conjuring…" : "Generate a background"}
+                    {generating ? t("editor.canvas.loading") : t("editor.canvas.empty")}
                   </div>
                 )}
                 <div className="absolute inset-0 bg-black/25" />
