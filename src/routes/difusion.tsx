@@ -124,27 +124,32 @@ function DifusionPage() {
 
   const submitMut = useMutation({
     mutationFn: async () => {
+      // Sanitization: trim whitespace so live canvas alignment is preserved
+      const cleanName = form.eventName.trim().replace(/\s+/g, " ");
+      const cleanLocation = form.location.trim();
+      const cleanSpeaker = form.speaker.trim();
+      const cleanEmail = form.email.trim();
       const answers = {
-        email: form.email,
+        email: cleanEmail,
         category: form.category,
         category_label: CATEGORIES.find((c) => c.value === form.category)?.label ?? "",
         required_logo: activeRule?.required_logo ?? null,
         require_trademark: activeRule?.require_trademark ? "sí" : "no",
         date: form.date,
         time: form.time,
-        location: form.location,
+        location: cleanLocation,
         audience: form.audience,
         image_status: form.imageStatus,
         attached_file: form.file?.name ?? null,
         channels: form.channels.join(", "),
         tone: form.tone,
-        speaker: form.speaker || null,
+        speaker: cleanSpeaker || null,
       };
-      const { id } = await createFn({ data: { name: form.eventName, answers } });
+      const { id } = await createFn({ data: { name: cleanName, answers } });
       genFn({ data: { eventId: id } }).catch((e) => console.warn("Generación falló:", e));
-      return id;
+      return { id, cleanName, cleanLocation };
     },
-    onSuccess: (id) => {
+    onSuccess: ({ id, cleanName, cleanLocation }) => {
       toast.success("Solicitud creada — abriendo generador de banner");
       const map: Record<string, "rituales" | "academico" | "merchandising"> = {
         rituales: "rituales",
@@ -158,9 +163,9 @@ function DifusionPage() {
         to: "/banner-studio",
         search: {
           eventId: id,
-          title: form.eventName,
+          title: cleanName,
           date: dateLabel || undefined,
-          place: form.location || undefined,
+          place: cleanLocation || undefined,
           eventType,
           view: "creator",
         },
