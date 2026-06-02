@@ -657,17 +657,21 @@ function Step4({ form, set }: { form: FormState; set: <K extends keyof FormState
 
 function LoadingOverlay() {
   return (
-    <div className="fixed inset-0 z-50 grid place-content-center bg-white/80 backdrop-blur-md animate-fade-in">
-      <Card className="px-10 py-12 max-w-md text-center bg-white border border-[#006547]/20 shadow-2xl rounded-xl">
+    <div className="fixed inset-0 z-50 grid place-content-center bg-white/70 backdrop-blur-md animate-fade-in">
+      <Card className="px-10 py-12 max-w-md text-center glass-card-strong rounded-2xl">
         <div className="relative size-16 mx-auto mb-6">
           <div className="absolute inset-0 rounded-full border-2 border-[#006547]/15" />
           <div className="absolute inset-0 rounded-full border-2 border-[#006547] border-t-transparent animate-spin" />
           <Sparkles className="absolute inset-0 m-auto size-6 text-[#006547]" />
         </div>
         <h3 className="font-serif text-2xl mb-2 text-neutral-900">Procesando…</h3>
-        <p className="text-sm text-neutral-600 leading-relaxed">
+        <p className="text-sm text-neutral-600 leading-relaxed mb-4">
           El Agente de IA está maquetando tus piezas según el manual de marca…
         </p>
+        <div className="h-[2px] w-full rounded-full overflow-hidden bg-emerald-100/70 mt-2">
+          <div className="sync-line h-full w-full" />
+        </div>
+        <p className="text-[11px] text-neutral-500 mt-3">Sincronizando con los activos del Manual de Marca</p>
       </Card>
     </div>
   );
