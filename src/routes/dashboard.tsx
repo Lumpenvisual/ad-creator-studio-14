@@ -2,13 +2,19 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { LogOut, Plus, MoreHorizontal, Pencil, Copy, Trash2, Sparkles } from "lucide-react";
+import { LogOut, Plus, MoreHorizontal, Pencil, Copy, Trash2, Sparkles, HardDrive, Check } from "lucide-react";
+import {
+  getGoogleAuthUrl,
+  getGoogleConnectionStatus,
+  disconnectGoogle,
+} from "@/lib/google-drive.functions";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -44,9 +50,41 @@ function Dashboard() {
   const navigate = useNavigate();
   const qc = useQueryClient();
 
+  const getAuthUrl = useServerFn(getGoogleAuthUrl);
+  const getStatus = useServerFn(getGoogleConnectionStatus);
+  const disconnect = useServerFn(disconnectGoogle);
+
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/login" });
   }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const g = p.get("google");
+    if (g === "ok") toast.success("Google Drive conectado");
+    if (g === "error") toast.error(`No se pudo conectar Google Drive${p.get("msg") ? ": " + p.get("msg") : ""}`);
+    if (g) window.history.replaceState({}, "", "/dashboard");
+  }, []);
+
+  const { data: drive } = useQuery({
+    queryKey: ["google-conn", user?.id],
+    enabled: !!user,
+    queryFn: () => getStatus(),
+  });
+
+  const connectMut = useMutation({
+    mutationFn: async () => getAuthUrl(),
+    onSuccess: ({ url }) => { window.location.href = url; },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Error"),
+  });
+
+  const disconnectMut = useMutation({
+    mutationFn: async () => disconnect(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["google-conn"] });
+      toast.success("Google Drive desconectado");
+    },
+  });
 
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
@@ -118,6 +156,28 @@ function Dashboard() {
                 {profile?.credits ?? "…"} créditos
               </span>
             </div>
+            {drive?.connected ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (confirm(`¿Desconectar Google Drive${drive.email ? ` (${drive.email})` : ""}?`)) {
+                    disconnectMut.mutate();
+                  }
+                }}
+              >
+                <Check className="size-4" /> Drive conectado
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => connectMut.mutate()}
+                disabled={connectMut.isPending}
+              >
+                <HardDrive className="size-4" /> Conectar Drive
+              </Button>
+            )}
             <Button variant="ghost" size="sm" onClick={signOut}>
               <LogOut className="size-4" /> Salir
             </Button>
