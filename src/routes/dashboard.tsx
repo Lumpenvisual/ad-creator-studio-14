@@ -198,9 +198,14 @@ function Dashboard() {
               {banners?.length ?? 0} {banners?.length === 1 ? t("dash.countOne") : t("dash.countMany")}
             </p>
           </div>
-          <Button onClick={() => navigate({ to: "/editor" })}>
-            <Plus className="size-4" /> {t("dash.new")}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" asChild>
+              <Link to="/brand"><ShieldCheck className="size-4" /> {lang === "es" ? "Marca" : "Brand"}</Link>
+            </Button>
+            <Button onClick={() => navigate({ to: "/editor" })}>
+              <Plus className="size-4" /> {t("dash.new")}
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (
