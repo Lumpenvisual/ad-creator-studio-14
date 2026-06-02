@@ -1,13 +1,13 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, useCallback, type DragEvent, type ChangeEvent } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   ArrowLeft, ArrowRight, Calendar, Clock, Mail, MapPin, Users, Image as ImageIcon,
   Upload, FileCheck2, Megaphone, Mail as MailIcon, GraduationCap, Instagram, Linkedin,
-  Facebook, Twitter, MessageCircle, Sparkles, Mic2, CheckCircle2, Download, Loader2,
-  PartyPopper, Newspaper,
+  Facebook, Twitter, MessageCircle, Sparkles, Mic2, Loader2,
+  Newspaper, ShieldAlert, Tag, Award, BookOpen, Lightbulb, ShoppingBag, Lock, Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,9 +16,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { createEvent, generateEventContent } from "@/lib/events.functions";
+import { listCategoryRules } from "@/lib/governance.functions";
 
 export const Route = createFileRoute("/difusion")({
   head: () => ({ meta: [{ title: "Solicitud de Difusión para Eventos" }] }),
@@ -31,6 +34,7 @@ type Tone = "academico" | "formativo" | "networking";
 type FormState = {
   email: string;
   eventName: string;
+  category: string;
   date: string;
   time: string;
   location: string;
@@ -43,19 +47,55 @@ type FormState = {
 };
 
 const INITIAL: FormState = {
-  email: "", eventName: "", date: "", time: "", location: "", audience: "",
+  email: "", eventName: "", category: "", date: "", time: "", location: "", audience: "",
   imageStatus: "", file: null, channels: [], tone: "", speaker: "",
 };
 
 const STEPS = ["Lo Esencial", "Visuales", "Canales", "IA"];
+
+const CATEGORIES = [
+  { value: "rituales", label: "Rituales de paso (Honoris Causa, Homenajes, Diplomas)", icon: Award },
+  { value: "academicas", label: "Actividades académicas y de docencia (Admisiones, Ofertas, Certificados)", icon: BookOpen },
+  { value: "extension", label: "Actividades de Extensión e Investigación (Congresos, Seminarios, Foros)", icon: Lightbulb },
+  { value: "promocionales", label: "Prendas de vestir y productos promocionales (Gorra, Termo, Uniformes)", icon: ShoppingBag },
+];
+
+const LOGO_KIND_LABEL: Record<string, string> = {
+  logo_vertical: "Logosímbolo Vertical",
+  logo_horizontal: "Logosímbolo Horizontal",
+  logotipo: "Logotipo",
+  logotipo_simplificado: "Logotipo Simplificado",
+};
+
+// Map UI category to DB row (best-effort by string match)
+function findCategoryRule(rows: Array<{ category: string; required_logo: string; require_trademark: boolean; description: string | null }>, ui: string) {
+  if (!ui) return null;
+  const tests: Record<string, RegExp> = {
+    rituales: /ritual/i,
+    academicas: /acad[eé]mic/i,
+    extension: /extensi[oó]n|investig/i,
+    promocionales: /prenda|merchand|promocional/i,
+  };
+  const re = tests[ui];
+  if (!re) return null;
+  return rows.find((r) => re.test(r.category)) ?? null;
+}
 
 function DifusionPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const createFn = useServerFn(createEvent);
   const genFn = useServerFn(generateEventContent);
+  const listCats = useServerFn(listCategoryRules);
 
   useEffect(() => { if (!loading && !user) navigate({ to: "/login" }); }, [loading, user, navigate]);
+
+  const { data: catData } = useQuery({
+    queryKey: ["category-rules"],
+    queryFn: () => listCats(),
+    enabled: !!user,
+  });
+  const categoryRows = catData?.rows ?? [];
 
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>(INITIAL);
@@ -69,7 +109,7 @@ function DifusionPage() {
   const stepValid = useMemo(() => {
     if (step === 0) {
       const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email);
-      return emailOk && form.eventName.trim() && form.date && form.time && form.location.trim() && form.audience;
+      return emailOk && form.eventName.trim() && form.category && form.date && form.time && form.location.trim() && form.audience;
     }
     if (step === 1) return form.imageStatus === "need" || (form.imageStatus === "have" && form.file);
     if (step === 2) return form.channels.length > 0;
@@ -80,10 +120,16 @@ function DifusionPage() {
   const next = () => stepValid && setStep((s) => Math.min(s + 1, STEPS.length - 1));
   const back = () => setStep((s) => Math.max(s - 1, 0));
 
+  const activeRule = useMemo(() => findCategoryRule(categoryRows as any, form.category), [categoryRows, form.category]);
+
   const submitMut = useMutation({
     mutationFn: async () => {
       const answers = {
         email: form.email,
+        category: form.category,
+        category_label: CATEGORIES.find((c) => c.value === form.category)?.label ?? "",
+        required_logo: activeRule?.required_logo ?? null,
+        require_trademark: activeRule?.require_trademark ? "sí" : "no",
         date: form.date,
         time: form.time,
         location: form.location,
@@ -95,10 +141,7 @@ function DifusionPage() {
         speaker: form.speaker || null,
       };
       const { id } = await createFn({ data: { name: form.eventName, answers } });
-      // Disparar generación en background; no bloquear la navegación si falla
-      genFn({ data: { eventId: id } }).catch((e) => {
-        console.warn("Generación falló:", e);
-      });
+      genFn({ data: { eventId: id } }).catch((e) => console.warn("Generación falló:", e));
       return id;
     },
     onSuccess: (id) => {
@@ -114,95 +157,226 @@ function DifusionPage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-background text-foreground">
-      {/* Ambient gradient */}
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -top-40 -left-40 size-[520px] rounded-full blur-3xl opacity-40"
-          style={{ background: "radial-gradient(circle, oklch(0.62 0.18 38 / 0.5), transparent 70%)" }} />
-        <div className="absolute top-1/3 -right-40 size-[520px] rounded-full blur-3xl opacity-30"
-          style={{ background: "radial-gradient(circle, oklch(0.55 0.14 250 / 0.5), transparent 70%)" }} />
+    <TooltipProvider delayDuration={150}>
+      <div
+        className="min-h-screen relative overflow-hidden bg-[#fafaf7] text-neutral-900"
+        style={{
+          // Scope: institutional green palette for accent classes inside this page
+          ["--accent" as any]: "0.42 0.10 161",
+          ["--accent-foreground" as any]: "1 0 0",
+        }}
+      >
+        {/* Top brand bar */}
+        <div className="h-1.5 w-full bg-[#006547]" />
+
+        <main className="max-w-7xl mx-auto px-5 sm:px-8 py-10 md:py-14">
+          {/* Header */}
+          <header className="mb-10 animate-fade-in max-w-3xl">
+            <p className="text-[11px] uppercase tracking-[0.25em] text-[#006547] font-semibold mb-3">Difusión institucional</p>
+            <h1 className="font-serif text-4xl md:text-5xl leading-[1.05] text-neutral-900">
+              Solicitud de Difusión para Eventos
+            </h1>
+            <p className="mt-4 text-base text-neutral-600">
+              ¡Hola! Completa este breve formulario para programar la difusión de tu evento.
+            </p>
+
+            <Card className="mt-6 p-5 md:p-6 border-l-4 border-l-[#006547] border-t border-r border-b border-emerald-900/10 bg-white shadow-sm rounded-lg">
+              <div className="flex gap-4">
+                <div className="shrink-0 size-10 rounded-full bg-[#006547]/10 grid place-content-center">
+                  <Sparkles className="size-5 text-[#006547]" />
+                </div>
+                <p className="text-sm leading-relaxed text-neutral-700">
+                  Al finalizar tu solicitud, nuestro sistema generará y te entregará los primeros insumos:
+                  las <strong>piezas gráficas</strong> adaptadas a los canales que elijas y los <strong>textos (copys)</strong> listos
+                  para cada publicación. <span className="text-[#006547] font-medium">¡Te tomará menos de 2 minutos!</span>
+                </p>
+              </div>
+            </Card>
+          </header>
+
+          <div className="grid lg:grid-cols-[1fr_340px] gap-8 items-start">
+            {/* Form column */}
+            <div>
+              {/* Progress */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3 text-xs">
+                  <span className="uppercase tracking-wider text-neutral-500">Paso {step + 1} de {STEPS.length}</span>
+                  <span className="font-semibold text-[#006547]">{STEPS[step]}</span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-emerald-900/10 overflow-hidden">
+                  <div
+                    className="h-full bg-[#006547] transition-all duration-500 ease-out"
+                    style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
+                  />
+                </div>
+                <div className="mt-4 hidden sm:flex justify-between">
+                  {STEPS.map((s, i) => (
+                    <div key={s} className={cn("text-[11px] uppercase tracking-wider transition-colors",
+                      i <= step ? "text-neutral-900 font-semibold" : "text-neutral-400")}>
+                      {i + 1}. {s}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Form card */}
+              <Card className="p-6 md:p-9 bg-white border border-neutral-200/80 shadow-sm rounded-xl animate-fade-in">
+                {step === 0 && <Step1 form={form} set={set} />}
+                {step === 1 && <Step2 form={form} set={set} />}
+                {step === 2 && <Step3 form={form} toggle={toggleChannel} />}
+                {step === 3 && <Step4 form={form} set={set} />}
+
+                <div className="mt-10 pt-6 border-t border-neutral-100 flex items-center justify-between">
+                  <Button variant="ghost" onClick={back} disabled={step === 0 || submitting} className="text-neutral-600 hover:text-neutral-900">
+                    <ArrowLeft className="size-4" /> Atrás
+                  </Button>
+                  {step < STEPS.length - 1 ? (
+                    <Button
+                      onClick={next}
+                      disabled={!stepValid}
+                      className="bg-[#006547] hover:bg-[#004d34] text-white"
+                    >
+                      Siguiente <ArrowRight className="size-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={submit}
+                      disabled={!stepValid || submitting}
+                      className="bg-[#006547] hover:bg-[#004d34] text-white"
+                    >
+                      {submitting ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+                      {submitting ? "Generando…" : "Generar Difusión"}
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            </div>
+
+            {/* Live brand validation sidebar */}
+            <aside className="lg:sticky lg:top-8">
+              <BrandValidationPanel form={form} rule={activeRule} />
+            </aside>
+          </div>
+
+          {submitting && <LoadingOverlay />}
+        </main>
+      </div>
+    </TooltipProvider>
+  );
+}
+
+/* ───────── Brand Validation Sidebar ───────── */
+
+function BrandValidationPanel({
+  form,
+  rule,
+}: {
+  form: FormState;
+  rule: { required_logo: string; require_trademark: boolean; description: string | null } | null;
+}) {
+  const cat = CATEGORIES.find((c) => c.value === form.category);
+  const logoLabel = rule ? LOGO_KIND_LABEL[rule.required_logo] ?? rule.required_logo : null;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-[#006547] font-semibold">
+        <ShieldAlert className="size-3.5" /> Validación de Marca
       </div>
 
-      <main className="max-w-3xl mx-auto px-5 sm:px-8 py-12 md:py-16">
-        {/* Header */}
-        <header className="mb-10 animate-fade-in">
-          <p className="text-[11px] uppercase tracking-[0.25em] text-accent font-medium mb-3">Difusión · Eventos</p>
-          <h1 className="font-serif text-4xl md:text-5xl leading-[1.05]">Solicitud de Difusión para Eventos</h1>
-          <p className="mt-4 text-base text-muted-foreground max-w-2xl">
-            ¡Hola! Completa este breve formulario para programar la difusión de tu evento.
-          </p>
-
-          <Card className="mt-6 p-5 md:p-6 border-accent/20 bg-gradient-to-br from-accent/10 via-card to-card backdrop-blur-md shadow-sm">
-            <div className="flex gap-4">
-              <div className="shrink-0 size-10 rounded-full bg-accent/15 grid place-content-center">
-                <Sparkles className="size-5 text-accent" />
-              </div>
-              <p className="text-sm leading-relaxed">
-                Al finalizar tu solicitud, nuestro sistema generará y te entregará los primeros insumos:
-                las <strong>piezas gráficas</strong> adaptadas a los canales que elijas y los <strong>textos (copys)</strong> listos
-                para cada publicación. <span className="text-accent font-medium">¡Te tomará menos de 2 minutos!</span>
-              </p>
-            </div>
-          </Card>
-        </header>
-
-        {/* Progress */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-3 text-xs">
-            <span className="uppercase tracking-wider text-muted-foreground">Paso {step + 1} de {STEPS.length}</span>
-            <span className="font-medium">{STEPS[step]}</span>
-          </div>
-          <Progress value={((step + 1) / STEPS.length) * 100} />
-          <div className="mt-4 hidden sm:flex justify-between">
-            {STEPS.map((s, i) => (
-              <div key={s} className={cn("text-[11px] uppercase tracking-wider transition-colors",
-                i <= step ? "text-foreground font-medium" : "text-muted-foreground/50")}>
-                {i + 1}. {s}
-              </div>
-            ))}
-          </div>
+      {/* Dynamic logo indicator */}
+      <Card className="p-5 bg-white border border-neutral-200/80 rounded-xl shadow-sm">
+        <div className="flex items-start justify-between gap-2">
+          <div className="text-xs uppercase tracking-wider text-neutral-500">Logo designado</div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button type="button" className="text-neutral-400 hover:text-neutral-700">
+                <Info className="size-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="max-w-xs">
+              Regla institucional: la categoría del evento determina automáticamente qué variante del logo se debe usar.
+            </TooltipContent>
+          </Tooltip>
         </div>
 
-        {/* Form card */}
-        <Card className="p-6 md:p-10 backdrop-blur-xl bg-card/80 border-border shadow-xl shadow-accent/5 animate-fade-in">
-          {step === 0 && <Step1 form={form} set={set} />}
-          {step === 1 && <Step2 form={form} set={set} />}
-          {step === 2 && <Step3 form={form} toggle={toggleChannel} />}
-          {step === 3 && <Step4 form={form} set={set} />}
+        {!cat ? (
+          <p className="mt-3 text-sm text-neutral-500">
+            Selecciona una categoría en el Paso 1 para ver la regla de marca aplicable.
+          </p>
+        ) : (
+          <div className="mt-4 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-neutral-900">
+              <Lock className="size-3.5 text-[#006547]" />
+              {logoLabel ?? "Logo institucional"}
+              {rule?.require_trademark && (
+                <span className="ml-1 inline-flex items-center text-[10px] font-bold text-[#006547]">®</span>
+              )}
+            </div>
 
-          <div className="mt-10 pt-6 border-t flex items-center justify-between">
-            <Button variant="ghost" onClick={back} disabled={step === 0 || submitting}>
-              <ArrowLeft className="size-4" /> Atrás
-            </Button>
-            {step < STEPS.length - 1 ? (
-              <Button onClick={next} disabled={!stepValid}>
-                Siguiente <ArrowRight className="size-4" />
-              </Button>
-            ) : (
-              <Button onClick={submit} disabled={!stepValid || submitting} className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                {submitting ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
-                {submitting ? "Procesando…" : "Generar piezas"}
-              </Button>
-            )}
+            {/* Inline rule text */}
+            <p className="text-xs leading-relaxed text-neutral-600">
+              {form.category === "rituales" && "Logosímbolo Vertical requerido de forma obligatoria."}
+              {form.category === "academicas" && "Logosímbolo Horizontal requerido."}
+              {form.category === "extension" && "Logotipo requerido de forma obligatoria."}
+              {form.category === "promocionales" && "Logotipo / Logosímbolo Horizontal ® (requiere Marca Registrada)."}
+            </p>
+
+            {/* Mock placeholder using only allowed colors: verde institucional, blanco, negro */}
+            <div className="mt-2 rounded-lg overflow-hidden border border-neutral-200">
+              <div className="aspect-[4/3] bg-[#006547] relative">
+                <div className="absolute inset-0 grid place-content-center text-center px-4">
+                  <div className="text-white font-serif text-xl leading-tight">
+                    {form.eventName || "Tu evento"}
+                  </div>
+                  <div className="text-[#006547] text-[10px] mt-3 inline-block bg-white px-2 py-1 rounded font-semibold tracking-wider uppercase mx-auto">
+                    {logoLabel ?? "Logo"}
+                    {rule?.require_trademark && <span className="ml-1">®</span>}
+                  </div>
+                </div>
+                {/* Corner brand mark */}
+                <div className="absolute top-2 right-2 size-6 rounded bg-white grid place-content-center">
+                  <div className="size-3 rounded-sm bg-[#006547]" />
+                </div>
+              </div>
+              <div className="bg-white px-3 py-2 text-[10px] uppercase tracking-wider text-neutral-500 flex items-center justify-between">
+                <span>Preview · Solo colores permitidos</span>
+                <div className="flex gap-1">
+                  <span className="size-2.5 rounded-full bg-[#006547] border border-neutral-200" title="Verde Institucional" />
+                  <span className="size-2.5 rounded-full bg-white border border-neutral-300" title="Blanco" />
+                  <span className="size-2.5 rounded-full bg-black border border-neutral-200" title="Negro" />
+                </div>
+              </div>
+            </div>
           </div>
-        </Card>
+        )}
+      </Card>
 
-        {submitting && <LoadingOverlay />}
-      </main>
+      {/* Rules checklist */}
+      <Card className="p-5 bg-white border border-neutral-200/80 rounded-xl shadow-sm">
+        <div className="text-xs uppercase tracking-wider text-neutral-500 mb-3">Reglas activas</div>
+        <ul className="space-y-2 text-xs text-neutral-700">
+          <li className="flex gap-2"><span className="text-[#006547]">•</span> Solo colores: Verde Institucional, Blanco, Negro.</li>
+          <li className="flex gap-2"><span className="text-[#006547]">•</span> No alterar proporciones del logosímbolo.</li>
+          <li className="flex gap-2"><span className="text-[#006547]">•</span> Conservar área de protección del logo.</li>
+          {rule?.require_trademark && (
+            <li className="flex gap-2 text-[#006547] font-medium"><span>•</span> Incluir símbolo ® obligatorio.</li>
+          )}
+        </ul>
+      </Card>
     </div>
   );
 }
 
-/* ───────── Steps ───────── */
+/* ───────── Shared atoms ───────── */
 
 function SectionTitle({ icon: Icon, title, hint }: { icon: React.ElementType; title: string; hint?: string }) {
   return (
     <div className="mb-6">
       <div className="flex items-center gap-2">
-        <Icon className="size-4 text-accent" />
-        <h2 className="font-serif text-2xl">{title}</h2>
+        <Icon className="size-4 text-[#006547]" />
+        <h2 className="font-serif text-2xl text-neutral-900">{title}</h2>
       </div>
-      {hint && <p className="text-sm text-muted-foreground mt-1">{hint}</p>}
+      {hint && <p className="text-sm text-neutral-500 mt-1">{hint}</p>}
     </div>
   );
 }
@@ -210,25 +384,53 @@ function SectionTitle({ icon: Icon, title, hint }: { icon: React.ElementType; ti
 function Field({ label, icon: Icon, children, required }: { label: string; icon?: React.ElementType; children: React.ReactNode; required?: boolean }) {
   return (
     <div className="space-y-2">
-      <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+      <Label className="text-xs uppercase tracking-wider text-neutral-500 flex items-center gap-1.5">
         {Icon && <Icon className="size-3.5" />} {label}
-        {required && <span className="text-accent">*</span>}
+        {required && <span className="text-[#006547]">*</span>}
       </Label>
       {children}
     </div>
   );
 }
 
+/* ───────── Steps ───────── */
+
 function Step1({ form, set }: { form: FormState; set: <K extends keyof FormState>(k: K, v: FormState[K]) => void }) {
   return (
     <div className="space-y-6 animate-fade-in">
       <SectionTitle icon={Sparkles} title="Lo esencial del evento" hint="Información básica para coordinar la difusión." />
+
       <Field label="Email de contacto" icon={Mail} required>
         <Input type="email" placeholder="tu@correo.edu" value={form.email} onChange={(e) => set("email", e.target.value)} />
       </Field>
+
       <Field label="Nombre del evento" required>
         <Input placeholder="Ej. Conferencia Innovación 2026" value={form.eventName} onChange={(e) => set("eventName", e.target.value)} />
       </Field>
+
+      <Field label="Categoría del evento" icon={Tag} required>
+        <Select value={form.category} onValueChange={(v) => set("category", v)}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Selecciona la categoría que mejor describe tu evento" />
+          </SelectTrigger>
+          <SelectContent className="max-w-[var(--radix-select-trigger-width)]">
+            {CATEGORIES.map((c) => (
+              <SelectItem key={c.value} value={c.value}>
+                <div className="flex items-start gap-2 py-0.5">
+                  <c.icon className="size-4 mt-0.5 text-[#006547] shrink-0" />
+                  <span className="text-sm leading-snug">{c.label}</span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {form.category && (
+          <p className="text-[11px] text-[#006547] mt-1 flex items-center gap-1.5">
+            <Lock className="size-3" /> Esta categoría define automáticamente el logo institucional aplicable.
+          </p>
+        )}
+      </Field>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <Field label="Fecha" icon={Calendar} required>
           <Input type="date" value={form.date} onChange={(e) => set("date", e.target.value)} />
@@ -237,15 +439,17 @@ function Step1({ form, set }: { form: FormState; set: <K extends keyof FormState
           <Input type="time" value={form.time} onChange={(e) => set("time", e.target.value)} />
         </Field>
       </div>
+
       <Field label="Ubicación o enlace de conexión" icon={MapPin} required>
         <Input placeholder="Aula 301 · o https://meet…" value={form.location} onChange={(e) => set("location", e.target.value)} />
       </Field>
+
       <Field label="Público objetivo" icon={Users} required>
         <RadioGroup value={form.audience} onValueChange={(v) => set("audience", v as Audience)} className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {(["Estudiantes", "Docentes", "Egresados", "Público general / Externo"] as Audience[]).map((a) => (
             <Label key={a} htmlFor={`a-${a}`}
-              className={cn("flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-all hover:border-accent/50",
-                form.audience === a && "border-accent bg-accent/5 ring-1 ring-accent")}>
+              className={cn("flex items-center gap-3 rounded-lg border border-neutral-200 p-3 cursor-pointer transition-all hover:border-[#006547]/40 bg-white",
+                form.audience === a && "border-[#006547] bg-[#006547]/5 ring-1 ring-[#006547]")}>
               <RadioGroupItem id={`a-${a}`} value={a} />
               <span className="text-sm">{a}</span>
             </Label>
@@ -258,7 +462,10 @@ function Step1({ form, set }: { form: FormState; set: <K extends keyof FormState
 
 function Step2({ form, set }: { form: FormState; set: <K extends keyof FormState>(k: K, v: FormState[K]) => void }) {
   const onFile = (f: File | null) => {
-    if (f && f.size > 15 * 1024 * 1024) return;
+    if (f && f.size > 15 * 1024 * 1024) {
+      toast.error("El archivo supera los 15 MB");
+      return;
+    }
     set("file", f);
   };
   const onDrop = (e: DragEvent<HTMLDivElement>) => {
@@ -268,18 +475,30 @@ function Step2({ form, set }: { form: FormState; set: <K extends keyof FormState
   return (
     <div className="space-y-6 animate-fade-in">
       <SectionTitle icon={ImageIcon} title="Necesidades visuales" hint="¿Necesitas que creemos la pieza o ya la tienes lista?" />
+
+      {/* Brand manual warning */}
+      <Card className="p-4 bg-amber-50/60 border border-amber-200 rounded-lg">
+        <div className="flex gap-3">
+          <ShieldAlert className="size-5 text-amber-700 shrink-0 mt-0.5" />
+          <div className="text-sm text-amber-900 leading-relaxed">
+            <strong>Recuerde:</strong> No está permitido alterar, distorsionar o modificar las proporciones
+            del logosímbolo institucional. Toda pieza adjuntada será validada contra el manual de marca.
+          </div>
+        </div>
+      </Card>
+
       <RadioGroup value={form.imageStatus} onValueChange={(v) => set("imageStatus", v as "need" | "have")} className="grid gap-3">
         {[
-          { v: "need", t: "Necesito que elaboren la pieza gráfica.", d: "Nuestro agente IA generará las piezas para los canales seleccionados." },
-          { v: "have", t: "Ya tengo la pieza gráfica.", d: "La adjuntaré a continuación." },
+          { v: "need", t: "Necesito que elaboren la pieza gráfica.", d: "Nuestro agente IA generará las piezas para los canales seleccionados, cumpliendo el manual de marca." },
+          { v: "have", t: "Ya tengo la pieza gráfica.", d: "La adjuntaré en el siguiente campo." },
         ].map((o) => (
           <Label key={o.v} htmlFor={`is-${o.v}`}
-            className={cn("flex gap-3 rounded-xl border p-4 cursor-pointer transition-all hover:border-accent/50",
-              form.imageStatus === o.v && "border-accent bg-accent/5 ring-1 ring-accent")}>
+            className={cn("flex gap-3 rounded-xl border border-neutral-200 p-4 cursor-pointer transition-all hover:border-[#006547]/40 bg-white",
+              form.imageStatus === o.v && "border-[#006547] bg-[#006547]/5 ring-1 ring-[#006547]")}>
             <RadioGroupItem id={`is-${o.v}`} value={o.v} className="mt-1" />
             <div>
               <div className="text-sm font-medium">{o.t}</div>
-              <div className="text-xs text-muted-foreground mt-0.5">{o.d}</div>
+              <div className="text-xs text-neutral-500 mt-0.5">{o.d}</div>
             </div>
           </Label>
         ))}
@@ -291,26 +510,26 @@ function Step2({ form, set }: { form: FormState; set: <K extends keyof FormState
             <div
               onDragOver={(e) => e.preventDefault()}
               onDrop={onDrop}
-              className="relative rounded-xl border-2 border-dashed border-border hover:border-accent/60 transition-colors p-8 text-center bg-surface-muted/40"
+              className="relative rounded-xl border-2 border-dashed border-neutral-300 hover:border-[#006547]/60 transition-colors p-8 text-center bg-neutral-50/60"
             >
               {form.file ? (
-                <div className="flex items-center justify-center gap-3 text-sm">
-                  <FileCheck2 className="size-5 text-accent" />
+                <div className="flex items-center justify-center gap-3 text-sm flex-wrap">
+                  <FileCheck2 className="size-5 text-[#006547]" />
                   <span className="font-medium">{form.file.name}</span>
-                  <span className="text-muted-foreground">({(form.file.size / 1024 / 1024).toFixed(1)} MB)</span>
+                  <span className="text-neutral-500">({(form.file.size / 1024 / 1024).toFixed(1)} MB)</span>
                   <Button type="button" size="sm" variant="ghost" onClick={() => set("file", null)}>Quitar</Button>
                 </div>
               ) : (
                 <>
-                  <Upload className="size-8 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm">Arrastra tu archivo aquí o</p>
-                  <label className="inline-block mt-2 text-sm text-accent font-medium cursor-pointer hover:underline">
+                  <Upload className="size-8 mx-auto text-neutral-400 mb-2" />
+                  <p className="text-sm text-neutral-700">Arrastra tu archivo aquí o</p>
+                  <label className="inline-block mt-2 text-sm text-[#006547] font-medium cursor-pointer hover:underline">
                     selecciona desde tu equipo
                     <input type="file" className="hidden"
                       accept="image/*,.pdf"
                       onChange={(e: ChangeEvent<HTMLInputElement>) => onFile(e.target.files?.[0] ?? null)} />
                   </label>
-                  <p className="text-xs text-muted-foreground mt-2">PNG, JPG o PDF · máx. 15 MB</p>
+                  <p className="text-xs text-neutral-500 mt-2">PNG, JPG o PDF · máx. 15 MB</p>
                 </>
               )}
             </div>
@@ -337,7 +556,7 @@ const CHANNEL_GROUPS = [
       { id: "instagram", label: "Instagram", icon: Instagram },
       { id: "linkedin", label: "LinkedIn", icon: Linkedin },
       { id: "facebook", label: "Facebook", icon: Facebook },
-      { id: "x", label: "X (Twitter)", icon: Twitter },
+      { id: "x", label: "X (antes Twitter)", icon: Twitter },
     ],
   },
   {
@@ -353,18 +572,18 @@ function Step3({ form, toggle }: { form: FormState; toggle: (c: string) => void 
       <SectionTitle icon={Megaphone} title="Canales de difusión" hint="Selecciona todos los que quieras activar." />
       {CHANNEL_GROUPS.map((g) => (
         <div key={g.label}>
-          <div className="text-xs uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+          <div className="text-xs uppercase tracking-wider text-neutral-500 mb-3 flex items-center gap-2">
             <g.icon className="size-3.5" /> {g.label}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-2 gap-2">
             {g.items.map((it) => {
               const active = form.channels.includes(it.id);
               return (
                 <Label key={it.id} htmlFor={`c-${it.id}`}
-                  className={cn("flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-all hover:border-accent/50",
-                    active && "border-accent bg-accent/5 ring-1 ring-accent")}>
+                  className={cn("flex items-center gap-3 rounded-lg border border-neutral-200 p-3 cursor-pointer transition-all hover:border-[#006547]/40 bg-white",
+                    active && "border-[#006547] bg-[#006547]/5 ring-1 ring-[#006547]")}>
                   <Checkbox id={`c-${it.id}`} checked={active} onCheckedChange={() => toggle(it.id)} />
-                  <it.icon className="size-4 text-muted-foreground" />
+                  <it.icon className={cn("size-4", active ? "text-[#006547]" : "text-neutral-500")} />
                   <span className="text-sm">{it.label}</span>
                 </Label>
               );
@@ -376,10 +595,10 @@ function Step3({ form, toggle }: { form: FormState; toggle: (c: string) => void 
   );
 }
 
-const TONES: { v: Tone; t: string; d: string }[] = [
-  { v: "academico", t: "Académico / Magistral", d: "Formal y riguroso. Ideal para LinkedIn, boletines institucionales." },
-  { v: "formativo", t: "Formativo / Taller práctico", d: "Educativo y equilibrado. Resalta lo que se aprenderá." },
-  { v: "networking", t: "Integración / Networking", d: "Cercano y dinámico. Genera comunidad y asistencia." },
+const TONES: { v: Tone; t: string; d: string; icon: React.ElementType }[] = [
+  { v: "academico", t: "Académico / Magistral", d: "Formal y riguroso. Ideal para LinkedIn y boletines institucionales.", icon: BookOpen },
+  { v: "formativo", t: "Formativo / Taller práctico", d: "Educativo y equilibrado. Resalta lo que se aprenderá.", icon: Lightbulb },
+  { v: "networking", t: "Integración / Networking", d: "Cercano y dinámico. Genera comunidad y asistencia, con emojis.", icon: Sparkles },
 ];
 
 function Step4({ form, set }: { form: FormState; set: <K extends keyof FormState>(k: K, v: FormState[K]) => void }) {
@@ -390,12 +609,13 @@ function Step4({ form, set }: { form: FormState; set: <K extends keyof FormState
         <RadioGroup value={form.tone} onValueChange={(v) => set("tone", v as Tone)} className="grid gap-3">
           {TONES.map((o) => (
             <Label key={o.v} htmlFor={`t-${o.v}`}
-              className={cn("flex gap-3 rounded-xl border p-4 cursor-pointer transition-all hover:border-accent/50",
-                form.tone === o.v && "border-accent bg-accent/5 ring-1 ring-accent")}>
+              className={cn("flex gap-3 rounded-xl border border-neutral-200 p-4 cursor-pointer transition-all hover:border-[#006547]/40 bg-white",
+                form.tone === o.v && "border-[#006547] bg-[#006547]/5 ring-1 ring-[#006547]")}>
               <RadioGroupItem id={`t-${o.v}`} value={o.v} className="mt-1" />
+              <o.icon className="size-4 mt-1 text-[#006547]" />
               <div>
                 <div className="text-sm font-medium">{o.t}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">{o.d}</div>
+                <div className="text-xs text-neutral-500 mt-0.5">{o.d}</div>
               </div>
             </Label>
           ))}
@@ -408,159 +628,22 @@ function Step4({ form, set }: { form: FormState; set: <K extends keyof FormState
   );
 }
 
-/* ───────── Loading & Results ───────── */
+/* ───────── Loading overlay ───────── */
 
 function LoadingOverlay() {
   return (
-    <div className="fixed inset-0 z-50 grid place-content-center bg-background/70 backdrop-blur-md animate-fade-in">
-      <Card className="px-10 py-12 max-w-md text-center bg-card/90 border-accent/20 shadow-2xl">
+    <div className="fixed inset-0 z-50 grid place-content-center bg-white/80 backdrop-blur-md animate-fade-in">
+      <Card className="px-10 py-12 max-w-md text-center bg-white border border-[#006547]/20 shadow-2xl rounded-xl">
         <div className="relative size-16 mx-auto mb-6">
-          <div className="absolute inset-0 rounded-full border-2 border-accent/20" />
-          <div className="absolute inset-0 rounded-full border-2 border-accent border-t-transparent animate-spin" />
-          <Sparkles className="absolute inset-0 m-auto size-6 text-accent" />
+          <div className="absolute inset-0 rounded-full border-2 border-[#006547]/15" />
+          <div className="absolute inset-0 rounded-full border-2 border-[#006547] border-t-transparent animate-spin" />
+          <Sparkles className="absolute inset-0 m-auto size-6 text-[#006547]" />
         </div>
-        <h3 className="font-serif text-2xl mb-2">Generando…</h3>
-        <p className="text-sm text-muted-foreground">
-          El Agente de IA está procesando tus datos y generando las piezas…
+        <h3 className="font-serif text-2xl mb-2 text-neutral-900">Procesando…</h3>
+        <p className="text-sm text-neutral-600 leading-relaxed">
+          El Agente de IA está maquetando tus piezas según el manual de marca…
         </p>
       </Card>
-    </div>
-  );
-}
-
-const COPIES: Record<Tone, { instagram: string; linkedin: string; whatsapp: string; email: string }> = {
-  academico: {
-    instagram: "Te invitamos a una jornada de reflexión académica sobre los desafíos contemporáneos. Inscripción abierta.",
-    linkedin: "Tenemos el honor de convocar a la comunidad académica a una sesión magistral. Una oportunidad para profundizar en el estado del arte de la disciplina y dialogar con voces de referencia.",
-    whatsapp: "Hola 👋 Te compartimos la convocatoria a nuestra próxima sesión académica. Cupos limitados.",
-    email: "Estimada comunidad,\n\nTenemos el agrado de invitarles a una sesión académica con presencia de invitados destacados. Adjuntamos los detalles y enlace de inscripción.",
-  },
-  formativo: {
-    instagram: "¿Quieres llevarte herramientas prácticas? Este taller es para ti 💡 ¡Apúntate!",
-    linkedin: "Abrimos inscripciones a un taller práctico diseñado para fortalecer competencias clave. Metodología activa, casos reales y certificación al finalizar.",
-    whatsapp: "Hola! Queremos contarte de un taller práctico que estamos organizando. ¿Te interesa participar?",
-    email: "Hola,\n\nTe invitamos a un taller práctico pensado para llevarte aprendizajes accionables desde el primer día. Te dejamos el enlace para inscribirte.",
-  },
-  networking: {
-    instagram: "¡Se viene algo grande! 🎉 Conoce gente, comparte ideas y pásala increíble con nosotros ✨ Te esperamos 👀",
-    linkedin: "Un espacio pensado para conectar profesionales, expandir tu red y descubrir nuevas oportunidades. Te esperamos.",
-    whatsapp: "Heyy 👋 Estamos armando un encuentro buenísimo y no te puedes perder. ¿Te apuntas? 🚀",
-    email: "Hola!\n\nEstamos preparando un encuentro para conectar y crear comunidad. Será una tarde para compartir ideas y conocer gente nueva. ¡Cuento contigo!",
-  },
-};
-
-const CHANNEL_META: Record<string, { label: string; icon: React.ElementType; format: string }> = {
-  instagram: { label: "Instagram", icon: Instagram, format: "Post cuadrado 1080×1080" },
-  linkedin: { label: "LinkedIn", icon: Linkedin, format: "Banner 1200×627" },
-  facebook: { label: "Facebook", icon: Facebook, format: "Post 1200×630" },
-  x: { label: "X (Twitter)", icon: Twitter, format: "Imagen 1600×900" },
-  whatsapp: { label: "WhatsApp", icon: MessageCircle, format: "Story vertical 1080×1920" },
-  boletin: { label: "Boletín", icon: MailIcon, format: "Header email 600×300" },
-  egresados: { label: "Egresados", icon: GraduationCap, format: "Tarjeta 1080×1080" },
-};
-
-function ResultsDashboard({ form, onReset }: { form: FormState; onReset: () => void }) {
-  const tone = (form.tone || "networking") as Tone;
-  const copies = COPIES[tone];
-
-  const copyMap = ([
-    { channel: "instagram", key: "instagram", icon: Instagram, label: "Instagram" },
-    { channel: "linkedin", key: "linkedin", icon: Linkedin, label: "LinkedIn" },
-    { channel: "whatsapp", key: "whatsapp", icon: MessageCircle, label: "WhatsApp" },
-    { channel: "boletin", key: "email", icon: MailIcon, label: "Email / Boletín" },
-  ] as const).filter((c) => form.channels.includes(c.channel));
-
-  const gradients = [
-    "from-accent/30 via-accent/10 to-transparent",
-    "from-indigo-500/30 via-indigo-500/10 to-transparent",
-    "from-emerald-500/30 via-emerald-500/10 to-transparent",
-    "from-rose-500/30 via-rose-500/10 to-transparent",
-    "from-sky-500/30 via-sky-500/10 to-transparent",
-  ];
-
-  return (
-    <div className="min-h-screen bg-background text-foreground">
-      <main className="max-w-5xl mx-auto px-5 sm:px-8 py-12 md:py-16 animate-fade-in">
-        <div className="flex items-start gap-4 mb-10">
-          <div className="size-12 rounded-full bg-accent/15 grid place-content-center shrink-0">
-            <CheckCircle2 className="size-6 text-accent" />
-          </div>
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.25em] text-accent font-medium mb-2 flex items-center gap-2">
-              <PartyPopper className="size-3.5" /> ¡Listo!
-            </p>
-            <h1 className="font-serif text-4xl md:text-5xl leading-[1.05]">Tus piezas están preparadas</h1>
-            <p className="mt-3 text-muted-foreground">
-              Generamos los copys y los placeholders gráficos para <strong>{form.eventName || "tu evento"}</strong>. Revisa, descarga y publica.
-            </p>
-          </div>
-        </div>
-
-        {/* Copys */}
-        <section className="mb-12">
-          <h2 className="font-serif text-2xl mb-5 flex items-center gap-2">
-            <Sparkles className="size-5 text-accent" /> Copys generados
-          </h2>
-          <div className="grid md:grid-cols-2 gap-4">
-            {copyMap.length === 0 && <p className="text-sm text-muted-foreground">No seleccionaste canales con copy.</p>}
-            {copyMap.map((c) => (
-              <Card key={c.channel} className="p-5 bg-card/80 backdrop-blur-md">
-                <div className="flex items-center gap-2 mb-3 text-sm font-medium">
-                  <c.icon className="size-4 text-accent" /> {c.label}
-                </div>
-                <p className="text-sm leading-relaxed whitespace-pre-line text-foreground/90">
-                  {copies[c.key]}
-                </p>
-                <Button size="sm" variant="ghost" className="mt-3 -ml-2"
-                  onClick={() => navigator.clipboard.writeText(copies[c.key])}>
-                  Copiar texto
-                </Button>
-              </Card>
-            ))}
-          </div>
-        </section>
-
-        {/* Piezas gráficas */}
-        <section className="mb-12">
-          <h2 className="font-serif text-2xl mb-5 flex items-center gap-2">
-            <ImageIcon className="size-5 text-accent" /> Piezas gráficas
-          </h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {form.channels.map((ch, i) => {
-              const meta = CHANNEL_META[ch];
-              if (!meta) return null;
-              return (
-                <Card key={ch} className="overflow-hidden group hover:shadow-xl hover:-translate-y-0.5 transition-all bg-card/80 backdrop-blur-md">
-                  <div className={cn("aspect-[4/3] bg-gradient-to-br relative", gradients[i % gradients.length])}>
-                    <div className="absolute inset-0 grid place-content-center">
-                      <meta.icon className="size-12 text-foreground/40" />
-                    </div>
-                    <div className="absolute bottom-3 left-3 text-[10px] uppercase tracking-wider text-foreground/60">
-                      {meta.format}
-                    </div>
-                  </div>
-                  <div className="p-4 flex items-center justify-between">
-                    <div>
-                      <div className="text-sm font-medium">Post para {meta.label}</div>
-                      <div className="text-xs text-muted-foreground">{form.eventName || "Evento"}</div>
-                    </div>
-                    <Button size="sm" variant="outline">
-                      <Download className="size-3.5" /> PNG
-                    </Button>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        </section>
-
-        <div className="flex items-center justify-between pt-6 border-t">
-          <p className="text-xs text-muted-foreground">
-            Enviado a <span className="text-foreground">{form.email}</span>
-          </p>
-          <Button variant="outline" onClick={onReset}>Crear otra solicitud</Button>
-        </div>
-      </main>
     </div>
   );
 }
