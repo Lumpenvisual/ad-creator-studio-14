@@ -2,13 +2,19 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { LogOut, Plus, MoreHorizontal, Pencil, Copy, Trash2, Sparkles } from "lucide-react";
+import { LogOut, Plus, MoreHorizontal, Pencil, Copy, Trash2, Sparkles, HardDrive, Check } from "lucide-react";
+import {
+  getGoogleAuthUrl,
+  getGoogleConnectionStatus,
+  disconnectGoogle,
+} from "@/lib/google-drive.functions";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
