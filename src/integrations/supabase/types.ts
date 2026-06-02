@@ -137,6 +137,152 @@ export type Database = {
         }
         Relationships: []
       }
+      event_outputs: {
+        Row: {
+          attempt_number: number
+          bodies: string[]
+          created_at: string
+          drive_file_id: string | null
+          drive_file_url: string | null
+          event_id: string
+          format: string | null
+          headlines: string[]
+          id: string
+          image_url: string | null
+          model_used: string | null
+          passed_validation: boolean
+          prompt_used: string | null
+          user_id: string
+          validation_warnings: string[]
+        }
+        Insert: {
+          attempt_number?: number
+          bodies?: string[]
+          created_at?: string
+          drive_file_id?: string | null
+          drive_file_url?: string | null
+          event_id: string
+          format?: string | null
+          headlines?: string[]
+          id?: string
+          image_url?: string | null
+          model_used?: string | null
+          passed_validation?: boolean
+          prompt_used?: string | null
+          user_id: string
+          validation_warnings?: string[]
+        }
+        Update: {
+          attempt_number?: number
+          bodies?: string[]
+          created_at?: string
+          drive_file_id?: string | null
+          drive_file_url?: string | null
+          event_id?: string
+          format?: string | null
+          headlines?: string[]
+          id?: string
+          image_url?: string | null
+          model_used?: string | null
+          passed_validation?: boolean
+          prompt_used?: string | null
+          user_id?: string
+          validation_warnings?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_outputs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_questionnaire_fields: {
+        Row: {
+          active: boolean
+          created_at: string
+          field_key: string
+          field_type: string
+          hint: string | null
+          id: string
+          label: string
+          options: Json
+          required: boolean
+          section: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          field_key: string
+          field_type?: string
+          hint?: string | null
+          id?: string
+          label: string
+          options?: Json
+          required?: boolean
+          section?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          field_key?: string
+          field_type?: string
+          hint?: string | null
+          id?: string
+          label?: string
+          options?: Json
+          required?: boolean
+          section?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      events: {
+        Row: {
+          answers: Json
+          created_at: string
+          drive_folder_id: string | null
+          drive_folder_url: string | null
+          id: string
+          last_error: string | null
+          name: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answers?: Json
+          created_at?: string
+          drive_folder_id?: string | null
+          drive_folder_url?: string | null
+          id?: string
+          last_error?: string | null
+          name?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          drive_folder_id?: string | null
+          drive_folder_url?: string | null
+          id?: string
+          last_error?: string | null
+          name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       google_connections: {
         Row: {
           access_token: string
@@ -197,15 +343,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -332,6 +505,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const

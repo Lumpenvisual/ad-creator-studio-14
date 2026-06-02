@@ -11,10 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as EventsRouteImport } from './routes/events'
 import { Route as EditorRouteImport } from './routes/editor'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as BrandRouteImport } from './routes/brand'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as EventsNewRouteImport } from './routes/events.new'
+import { Route as EventsIdRouteImport } from './routes/events.$id'
+import { Route as AdminQuestionnaireRouteImport } from './routes/admin.questionnaire'
 import { Route as ApiGoogleCallbackRouteImport } from './routes/api/google/callback'
 
 const SignupRoute = SignupRouteImport.update({
@@ -25,6 +29,11 @@ const SignupRoute = SignupRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventsRoute = EventsRouteImport.update({
+  id: '/events',
+  path: '/events',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EditorRoute = EditorRouteImport.update({
@@ -47,6 +56,21 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EventsNewRoute = EventsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => EventsRoute,
+} as any)
+const EventsIdRoute = EventsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => EventsRoute,
+} as any)
+const AdminQuestionnaireRoute = AdminQuestionnaireRouteImport.update({
+  id: '/admin/questionnaire',
+  path: '/admin/questionnaire',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiGoogleCallbackRoute = ApiGoogleCallbackRouteImport.update({
   id: '/api/google/callback',
   path: '/api/google/callback',
@@ -58,8 +82,12 @@ export interface FileRoutesByFullPath {
   '/brand': typeof BrandRoute
   '/dashboard': typeof DashboardRoute
   '/editor': typeof EditorRoute
+  '/events': typeof EventsRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/admin/questionnaire': typeof AdminQuestionnaireRoute
+  '/events/$id': typeof EventsIdRoute
+  '/events/new': typeof EventsNewRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
 }
 export interface FileRoutesByTo {
@@ -67,8 +95,12 @@ export interface FileRoutesByTo {
   '/brand': typeof BrandRoute
   '/dashboard': typeof DashboardRoute
   '/editor': typeof EditorRoute
+  '/events': typeof EventsRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/admin/questionnaire': typeof AdminQuestionnaireRoute
+  '/events/$id': typeof EventsIdRoute
+  '/events/new': typeof EventsNewRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
 }
 export interface FileRoutesById {
@@ -77,8 +109,12 @@ export interface FileRoutesById {
   '/brand': typeof BrandRoute
   '/dashboard': typeof DashboardRoute
   '/editor': typeof EditorRoute
+  '/events': typeof EventsRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/admin/questionnaire': typeof AdminQuestionnaireRoute
+  '/events/$id': typeof EventsIdRoute
+  '/events/new': typeof EventsNewRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
 }
 export interface FileRouteTypes {
@@ -88,8 +124,12 @@ export interface FileRouteTypes {
     | '/brand'
     | '/dashboard'
     | '/editor'
+    | '/events'
     | '/login'
     | '/signup'
+    | '/admin/questionnaire'
+    | '/events/$id'
+    | '/events/new'
     | '/api/google/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -97,8 +137,12 @@ export interface FileRouteTypes {
     | '/brand'
     | '/dashboard'
     | '/editor'
+    | '/events'
     | '/login'
     | '/signup'
+    | '/admin/questionnaire'
+    | '/events/$id'
+    | '/events/new'
     | '/api/google/callback'
   id:
     | '__root__'
@@ -106,8 +150,12 @@ export interface FileRouteTypes {
     | '/brand'
     | '/dashboard'
     | '/editor'
+    | '/events'
     | '/login'
     | '/signup'
+    | '/admin/questionnaire'
+    | '/events/$id'
+    | '/events/new'
     | '/api/google/callback'
   fileRoutesById: FileRoutesById
 }
@@ -116,8 +164,10 @@ export interface RootRouteChildren {
   BrandRoute: typeof BrandRoute
   DashboardRoute: typeof DashboardRoute
   EditorRoute: typeof EditorRoute
+  EventsRoute: typeof EventsRouteWithChildren
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
+  AdminQuestionnaireRoute: typeof AdminQuestionnaireRoute
   ApiGoogleCallbackRoute: typeof ApiGoogleCallbackRoute
 }
 
@@ -135,6 +185,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/events': {
+      id: '/events'
+      path: '/events'
+      fullPath: '/events'
+      preLoaderRoute: typeof EventsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/editor': {
@@ -165,6 +222,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/events/new': {
+      id: '/events/new'
+      path: '/new'
+      fullPath: '/events/new'
+      preLoaderRoute: typeof EventsNewRouteImport
+      parentRoute: typeof EventsRoute
+    }
+    '/events/$id': {
+      id: '/events/$id'
+      path: '/$id'
+      fullPath: '/events/$id'
+      preLoaderRoute: typeof EventsIdRouteImport
+      parentRoute: typeof EventsRoute
+    }
+    '/admin/questionnaire': {
+      id: '/admin/questionnaire'
+      path: '/admin/questionnaire'
+      fullPath: '/admin/questionnaire'
+      preLoaderRoute: typeof AdminQuestionnaireRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/google/callback': {
       id: '/api/google/callback'
       path: '/api/google/callback'
@@ -175,13 +253,28 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface EventsRouteChildren {
+  EventsIdRoute: typeof EventsIdRoute
+  EventsNewRoute: typeof EventsNewRoute
+}
+
+const EventsRouteChildren: EventsRouteChildren = {
+  EventsIdRoute: EventsIdRoute,
+  EventsNewRoute: EventsNewRoute,
+}
+
+const EventsRouteWithChildren =
+  EventsRoute._addFileChildren(EventsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BrandRoute: BrandRoute,
   DashboardRoute: DashboardRoute,
   EditorRoute: EditorRoute,
+  EventsRoute: EventsRouteWithChildren,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
+  AdminQuestionnaireRoute: AdminQuestionnaireRoute,
   ApiGoogleCallbackRoute: ApiGoogleCallbackRoute,
 }
 export const routeTree = rootRouteImport
