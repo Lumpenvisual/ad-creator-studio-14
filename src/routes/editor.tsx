@@ -18,14 +18,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { Sparkles, Download, LogOut, Loader2, HardDrive } from "lucide-react";
+import { useI18n, LanguageSwitcher } from "@/lib/i18n";
 
 export const Route = createFileRoute("/editor")({ component: Editor });
 
 type Format = "square" | "vertical" | "horizontal";
-const FORMATS: Record<Format, { w: number; h: number; label: string }> = {
-  square: { w: 1080, h: 1080, label: "Square 1080×1080" },
-  vertical: { w: 1080, h: 1920, label: "Story 1080×1920" },
-  horizontal: { w: 1920, h: 1080, label: "Landscape 1920×1080" },
+const FORMAT_DIM: Record<Format, { w: number; h: number }> = {
+  square: { w: 1080, h: 1080 },
+  vertical: { w: 1080, h: 1920 },
+  horizontal: { w: 1920, h: 1080 },
 };
 
 const FONTS = ["Instrument Serif", "Schibsted Grotesk", "Inter", "Playfair Display", "Space Grotesk"];
@@ -41,12 +42,18 @@ function Editor() {
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { t } = useI18n();
   const genFn = useServerFn(generateBannerImage);
   const uploadDrive = useServerFn(uploadBannerToDrive);
   const getDrive = useServerFn(getGoogleConnectionStatus);
   const { data: drive } = useQuery({
     queryKey: ["google-conn", user?.id], enabled: !!user, queryFn: () => getDrive(),
   });
+  const FORMAT_LABEL: Record<Format, string> = {
+    square: t("fmt.square"),
+    vertical: t("fmt.vertical"),
+    horizontal: t("fmt.horizontal"),
+  };
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/login" });
@@ -76,20 +83,20 @@ function Editor() {
   const previewRef = useRef<HTMLDivElement>(null);
 
   async function handleGenerate() {
-    if (prompt.trim().length < 3) return toast.error("Write a prompt first.");
+    if (prompt.trim().length < 3) return toast.error(t("editor.toast.promptShort"));
     setGenerating(true);
     try {
       const res = await genFn({ data: { prompt, model } });
       setImageUrl(res.imageUrl);
       qc.invalidateQueries({ queryKey: ["profile"] });
-      toast.success(`Generated. ${res.creditsRemaining} credits left.`);
+      toast.success(t("editor.toast.generated", { n: res.creditsRemaining }));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Generation failed");
+      toast.error(e instanceof Error ? e.message : "Error");
     } finally { setGenerating(false); }
   }
 
   async function renderToDataUrl(fmt: Format): Promise<string> {
-    const { w, h } = FORMATS[fmt];
+    const { w, h } = FORMAT_DIM[fmt];
     const canvas = document.createElement("canvas");
     canvas.width = w; canvas.height = h;
     const ctx = canvas.getContext("2d")!;
@@ -120,7 +127,7 @@ function Editor() {
   }
 
   async function handleExport(fmt: Format) {
-    if (!imageUrl) return toast.error("Generate a background first.");
+    if (!imageUrl) return toast.error(t("editor.toast.noBg"));
     setExporting(true);
     try {
       const url = await renderToDataUrl(fmt);
@@ -128,56 +135,57 @@ function Editor() {
       a.href = url;
       a.download = `banner-${fmt}-${Date.now()}.png`;
       a.click();
-      toast.success("Downloaded");
+      toast.success(t("editor.toast.downloaded"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Export failed");
+      toast.error(e instanceof Error ? e.message : "Error");
     } finally { setExporting(false); }
   }
 
   async function handleUploadDrive(fmt: Format) {
-    if (!imageUrl) return toast.error("Generate a background first.");
+    if (!imageUrl) return toast.error(t("editor.toast.noBg"));
     if (!drive?.connected) {
-      toast.error("Conecta Google Drive desde el Dashboard primero.");
+      toast.error(t("editor.toast.driveNotConnected"));
       return;
     }
     setExporting(true);
-    const tId = toast.loading("Subiendo a Google Drive…");
+    const tId = toast.loading(t("editor.toast.uploading"));
     try {
       const dataUrl = await renderToDataUrl(fmt);
       const base64 = dataUrl.split(",")[1];
       const filename = `banner-${fmt}-${Date.now()}.png`;
       const res = await uploadDrive({ data: { filename, imageBase64: base64 } });
-      toast.success("Subido a Google Drive", {
+      toast.success(t("editor.toast.uploaded"), {
         id: tId,
-        action: { label: "Abrir", onClick: () => window.open(res.webViewLink, "_blank") },
+        action: { label: t("editor.toast.open"), onClick: () => window.open(res.webViewLink, "_blank") },
       });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Upload failed", { id: tId });
+      toast.error(e instanceof Error ? e.message : "Error", { id: tId });
     } finally { setExporting(false); }
   }
 
   if (!user) return null;
 
-  const fmt = FORMATS[format];
+  const fmt = FORMAT_DIM[format];
   const aspect = fmt.w / fmt.h;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link to="/dashboard" className="font-serif text-2xl">Vellum Studio</Link>
-          <div className="flex items-center gap-4">
+          <Link to="/dashboard" className="font-serif text-2xl">{t("brand")}</Link>
+          <div className="flex items-center gap-3">
             <Link to="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              ← Dashboard
+              {t("nav.dashboard")}
             </Link>
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-surface-muted rounded-full ring-1 ring-border">
               <span className="size-1.5 rounded-full bg-accent animate-pulse" />
               <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                {profile?.credits ?? "…"} créditos
+                {profile?.credits ?? "…"} {t("nav.credits")}
               </span>
             </div>
+            <LanguageSwitcher />
             <Button variant="ghost" size="sm" onClick={signOut}>
-              <LogOut className="size-4" /> Salir
+              <LogOut className="size-4" /> {t("nav.signOut")}
             </Button>
           </div>
         </div>
@@ -189,7 +197,7 @@ function Editor() {
           <aside className="space-y-4">
             <section className="p-6 bg-surface-muted rounded-xl ring-1 ring-border space-y-5">
               <div>
-                <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">Model</Label>
+                <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">{t("editor.model")}</Label>
                 <Select value={model} onValueChange={(v) => setModel(v as ImageModel)}>
                   <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -206,35 +214,35 @@ function Editor() {
               </div>
 
               <div>
-                <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">Visual prompt</Label>
+                <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">{t("editor.prompt")}</Label>
                 <Textarea
                   className="mt-2 min-h-[110px] resize-none"
-                  placeholder="Atmospheric studio lighting on a minimalist leather chair, soft shadows, warm neutral tones…"
+                  placeholder={t("editor.prompt.ph")}
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                 />
               </div>
 
               <Button onClick={handleGenerate} disabled={generating} className="w-full">
-                {generating ? <><Loader2 className="size-4 animate-spin" /> Generating…</> : <><Sparkles className="size-4" /> Generate background (1 credit)</>}
+                {generating ? <><Loader2 className="size-4 animate-spin" /> {t("editor.generating")}</> : <><Sparkles className="size-4" /> {t("editor.generate")}</>}
               </Button>
             </section>
 
             <section className="p-6 bg-surface-muted rounded-xl ring-1 ring-border space-y-4">
               <div>
-                <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">Headline</Label>
+                <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">{t("editor.headline")}</Label>
                 <Input className="mt-2" value={headline} onChange={(e) => setHeadline(e.target.value)} />
               </div>
               <div>
-                <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">Body</Label>
+                <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">{t("editor.body")}</Label>
                 <Textarea className="mt-2 min-h-[70px] resize-none" value={body} onChange={(e) => setBody(e.target.value)} />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <ColorField label="Text" value={primary} onChange={setPrimary} />
-                <ColorField label="Accent" value={accent} onChange={setAccent} />
+                <ColorField label={t("editor.text")} value={primary} onChange={setPrimary} />
+                <ColorField label={t("editor.accent")} value={accent} onChange={setAccent} />
               </div>
               <div>
-                <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">Font</Label>
+                <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">{t("editor.font")}</Label>
                 <Select value={font} onValueChange={setFont}>
                   <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -249,7 +257,7 @@ function Editor() {
           <div className="space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex gap-2">
-                {(Object.keys(FORMATS) as Format[]).map((f) => (
+                {(Object.keys(FORMAT_DIM) as Format[]).map((f) => (
                   <button
                     key={f}
                     onClick={() => setFormat(f)}
@@ -257,34 +265,34 @@ function Editor() {
                       format === f ? "bg-primary text-primary-foreground" : "bg-card ring-1 ring-border text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    {FORMATS[f].label}
+                    {FORMAT_LABEL[f]}
                   </button>
                 ))}
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button disabled={!imageUrl || exporting}>
-                    <Download className="size-4" /> Export
+                    <Download className="size-4" /> {t("editor.export")}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">Descargar PNG</DropdownMenuLabel>
-                  {(Object.keys(FORMATS) as Format[]).map((f) => (
+                  <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">{t("editor.export.png")}</DropdownMenuLabel>
+                  {(Object.keys(FORMAT_DIM) as Format[]).map((f) => (
                     <DropdownMenuItem key={`dl-${f}`} onClick={() => handleExport(f)}>
-                      <Download className="size-4" /> {FORMATS[f].label}
+                      <Download className="size-4" /> {FORMAT_LABEL[f]}
                     </DropdownMenuItem>
                   ))}
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                    Google Drive {drive?.connected ? "" : "(no conectado)"}
+                    {t("editor.export.drive")} {drive?.connected ? "" : t("editor.export.driveOff")}
                   </DropdownMenuLabel>
-                  {(Object.keys(FORMATS) as Format[]).map((f) => (
+                  {(Object.keys(FORMAT_DIM) as Format[]).map((f) => (
                     <DropdownMenuItem
                       key={`gd-${f}`}
                       disabled={!drive?.connected}
                       onClick={() => handleUploadDrive(f)}
                     >
-                      <HardDrive className="size-4" /> {FORMATS[f].label}
+                      <HardDrive className="size-4" /> {FORMAT_LABEL[f]}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
@@ -304,7 +312,7 @@ function Editor() {
                   <img src={imageUrl} alt="" className="absolute inset-0 size-full object-cover" />
                 ) : (
                   <div className="absolute inset-0 grid place-items-center text-xs uppercase tracking-widest text-muted-foreground">
-                    {generating ? "Conjuring…" : "Generate a background"}
+                    {generating ? t("editor.canvas.loading") : t("editor.canvas.empty")}
                   </div>
                 )}
                 <div className="absolute inset-0 bg-black/25" />

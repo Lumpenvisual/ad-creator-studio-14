@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Layers, Download } from "lucide-react";
+import { useI18n, LanguageSwitcher } from "@/lib/i18n";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -11,19 +12,37 @@ export const Route = createFileRoute("/")({
 function Landing() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   useEffect(() => {
     if (!loading && user) navigate({ to: "/editor" });
   }, [user, loading, navigate]);
 
+  const features = [
+    { icon: Sparkles, t: t("landing.f1.t"), d: t("landing.f1.d") },
+    { icon: Layers, t: t("landing.f2.t"), d: t("landing.f2.d") },
+    { icon: Download, t: t("landing.f3.t"), d: t("landing.f3.d") },
+  ];
+
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b">
+    <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
+      {/* Ambient backdrop */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 opacity-[0.35]"
+        style={{
+          backgroundImage:
+            "radial-gradient(ellipse 60% 50% at 80% 0%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 60%), radial-gradient(ellipse 50% 40% at 0% 30%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 60%)",
+        }}
+      />
+
+      <header className="sticky top-0 z-50 bg-background/70 backdrop-blur-md border-b">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          <span className="font-serif text-2xl">Vellum Studio</span>
-          <div className="flex gap-2">
-            <Button asChild variant="ghost"><Link to="/login">Log in</Link></Button>
-            <Button asChild><Link to="/signup">Get started</Link></Button>
+          <span className="font-serif text-2xl">{t("brand")}</span>
+          <div className="flex items-center gap-1">
+            <LanguageSwitcher />
+            <Button asChild variant="ghost"><Link to="/login">{t("nav.login")}</Link></Button>
+            <Button asChild><Link to="/signup">{t("nav.getStarted")}</Link></Button>
           </div>
         </div>
       </header>
@@ -32,31 +51,32 @@ function Landing() {
         <div className="max-w-3xl">
           <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-muted text-xs font-medium uppercase tracking-widest ring-1 ring-border">
             <span className="size-1.5 rounded-full bg-accent animate-pulse" />
-            AI banner studio
+            {t("landing.badge")}
           </span>
           <h1 className="mt-6 font-serif text-6xl md:text-7xl leading-[0.95] text-balance">
-            Banner ads, drafted by AI.<br />
-            <span className="text-muted-foreground italic">Refined by you.</span>
+            {t("landing.h1.a")}<br />
+            <span className="text-muted-foreground italic">{t("landing.h1.b")}</span>
           </h1>
           <p className="mt-6 text-lg text-muted-foreground max-w-2xl text-pretty">
-            Generate background imagery with GPT-Image, Gemini, or open-source models. Edit headline, body, and brand colors on a live canvas. Export in three social formats — or push straight to Drive.
+            {t("landing.lead")}
           </p>
           <div className="mt-10 flex flex-wrap gap-3">
-            <Button asChild size="lg"><Link to="/signup">Start creating — 5 free credits</Link></Button>
-            <Button asChild variant="outline" size="lg"><Link to="/login">I have an account</Link></Button>
+            <Button asChild size="lg"><Link to="/signup">{t("landing.cta.primary")}</Link></Button>
+            <Button asChild variant="outline" size="lg"><Link to="/login">{t("landing.cta.secondary")}</Link></Button>
           </div>
         </div>
 
-        <div className="mt-24 grid md:grid-cols-3 gap-8">
-          {[
-            { icon: Sparkles, t: "Multi-model AI", d: "GPT-Image, Gemini, and open-source providers behind one unified prompt." },
-            { icon: Layers, t: "Brand-aware editor", d: "Live overlays — your typography, your colors, draggable text blocks." },
-            { icon: Download, t: "Export anywhere", d: "Square, Story, Landscape — download as PNG or push to Google Drive." },
-          ].map((f) => (
-            <div key={f.t} className="p-6 rounded-xl bg-card ring-1 ring-border">
-              <f.icon className="size-5 text-accent" />
-              <h3 className="mt-4 font-semibold">{f.t}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{f.d}</p>
+        <div className="mt-24 grid md:grid-cols-3 gap-6">
+          {features.map((f) => (
+            <div
+              key={f.t}
+              className="group relative p-6 rounded-xl bg-card ring-1 ring-border transition-all hover:ring-accent/40 hover:-translate-y-0.5"
+            >
+              <div className="size-10 rounded-lg bg-accent/10 text-accent grid place-items-center">
+                <f.icon className="size-5" />
+              </div>
+              <h3 className="mt-5 font-semibold">{f.t}</h3>
+              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{f.d}</p>
             </div>
           ))}
         </div>

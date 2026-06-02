@@ -15,6 +15,7 @@ import {
   getGoogleConnectionStatus,
   disconnectGoogle,
 } from "@/lib/google-drive.functions";
+import { useI18n, LanguageSwitcher } from "@/lib/i18n";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -49,6 +50,7 @@ function Dashboard() {
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { t, lang } = useI18n();
 
   const getAuthUrl = useServerFn(getGoogleAuthUrl);
   const getStatus = useServerFn(getGoogleConnectionStatus);
@@ -61,9 +63,10 @@ function Dashboard() {
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     const g = p.get("google");
-    if (g === "ok") toast.success("Google Drive conectado");
-    if (g === "error") toast.error(`No se pudo conectar Google Drive${p.get("msg") ? ": " + p.get("msg") : ""}`);
+    if (g === "ok") toast.success(t("dash.drive.connected"));
+    if (g === "error") toast.error(`${t("dash.drive.error")}${p.get("msg") ? ": " + p.get("msg") : ""}`);
     if (g) window.history.replaceState({}, "", "/dashboard");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const { data: drive } = useQuery({
@@ -82,7 +85,7 @@ function Dashboard() {
     mutationFn: async () => disconnect(),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["google-conn"] });
-      toast.success("Google Drive desconectado");
+      toast.success(t("dash.drive.disconnected"));
     },
   });
 
@@ -116,16 +119,16 @@ function Dashboard() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["banners"] });
-      toast.success("Banner eliminado");
+      toast.success(t("dash.toast.deleted"));
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "No se pudo eliminar"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Error"),
   });
 
   const duplicateMut = useMutation({
     mutationFn: async (b: Banner) => {
       const { error } = await supabase.from("banners").insert({
         user_id: user!.id,
-        name: `${b.name} (copia)`,
+        name: `${b.name} (${lang === "es" ? "copia" : "copy"})`,
         headline: b.headline,
         body_text: b.body_text,
         image_url: b.image_url,
@@ -137,9 +140,9 @@ function Dashboard() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["banners"] });
-      toast.success("Banner duplicado");
+      toast.success(t("dash.toast.duplicated"));
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "No se pudo duplicar"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Error"),
   });
 
   if (!user) return null;
@@ -148,25 +151,27 @@ function Dashboard() {
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link to="/dashboard" className="font-serif text-2xl">Vellum Studio</Link>
-          <div className="flex items-center gap-4">
+          <Link to="/dashboard" className="font-serif text-2xl">{t("brand")}</Link>
+          <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-surface-muted rounded-full ring-1 ring-border">
               <span className="size-1.5 rounded-full bg-accent animate-pulse" />
               <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                {profile?.credits ?? "…"} créditos
+                {profile?.credits ?? "…"} {t("nav.credits")}
               </span>
             </div>
+            <LanguageSwitcher />
             {drive?.connected ? (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  if (confirm(`¿Desconectar Google Drive${drive.email ? ` (${drive.email})` : ""}?`)) {
+                  const emailPart = drive.email ? ` (${drive.email})` : "";
+                  if (confirm(t("dash.confirm.disconnect", { email: emailPart }))) {
                     disconnectMut.mutate();
                   }
                 }}
               >
-                <Check className="size-4" /> Drive conectado
+                <Check className="size-4" /> {t("nav.driveConnected")}
               </Button>
             ) : (
               <Button
@@ -175,11 +180,11 @@ function Dashboard() {
                 onClick={() => connectMut.mutate()}
                 disabled={connectMut.isPending}
               >
-                <HardDrive className="size-4" /> Conectar Drive
+                <HardDrive className="size-4" /> {t("nav.connectDrive")}
               </Button>
             )}
             <Button variant="ghost" size="sm" onClick={signOut}>
-              <LogOut className="size-4" /> Salir
+              <LogOut className="size-4" /> {t("nav.signOut")}
             </Button>
           </div>
         </div>
@@ -188,13 +193,13 @@ function Dashboard() {
       <main className="max-w-7xl mx-auto px-6 py-10">
         <div className="flex items-end justify-between mb-8 flex-wrap gap-4">
           <div>
-            <h1 className="font-serif text-4xl md:text-5xl">Tus banners</h1>
+            <h1 className="font-serif text-4xl md:text-5xl">{t("dash.title")}</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              {banners?.length ?? 0} {banners?.length === 1 ? "banner guardado" : "banners guardados"}
+              {banners?.length ?? 0} {banners?.length === 1 ? t("dash.countOne") : t("dash.countMany")}
             </p>
           </div>
           <Button onClick={() => navigate({ to: "/editor" })}>
-            <Plus className="size-4" /> Nuevo banner
+            <Plus className="size-4" /> {t("dash.new")}
           </Button>
         </div>
 
@@ -215,7 +220,7 @@ function Dashboard() {
                 onOpen={() => navigate({ to: "/editor" })}
                 onDuplicate={() => duplicateMut.mutate(b)}
                 onDelete={() => {
-                  if (confirm(`¿Eliminar "${b.name}"?`)) deleteMut.mutate(b.id);
+                  if (confirm(t("dash.confirm.delete", { name: b.name }))) deleteMut.mutate(b.id);
                 }}
               />
             ))}
@@ -234,9 +239,10 @@ function BannerCard({
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
+  const { t, lang } = useI18n();
   const fmt = banner.format ?? "square";
   return (
-    <div className="group bg-card ring-1 ring-border rounded-xl overflow-hidden hover:shadow-xl hover:shadow-black/5 transition-shadow">
+    <div className="group bg-card ring-1 ring-border rounded-xl overflow-hidden hover:shadow-xl hover:shadow-black/5 transition-all hover:-translate-y-0.5">
       <button
         onClick={onOpen}
         className="block w-full aspect-square relative bg-surface-muted overflow-hidden"
@@ -249,7 +255,7 @@ function BannerCard({
           />
         ) : (
           <div className="absolute inset-0 grid place-items-center text-xs uppercase tracking-widest text-muted-foreground">
-            Sin imagen
+            {t("dash.card.noImage")}
           </div>
         )}
         {banner.headline && (
@@ -268,7 +274,7 @@ function BannerCard({
         <div className="min-w-0">
           <p className="text-sm font-medium truncate">{banner.name}</p>
           <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-            {FORMAT_LABEL[fmt] ?? fmt} · {formatDate(banner.updated_at)}
+            {FORMAT_LABEL[fmt] ?? fmt} · {formatDate(banner.updated_at, lang)}
           </p>
         </div>
         <DropdownMenu>
@@ -279,13 +285,13 @@ function BannerCard({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={onOpen}>
-              <Pencil className="size-4" /> Abrir en editor
+              <Pencil className="size-4" /> {t("dash.card.open")}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onDuplicate}>
-              <Copy className="size-4" /> Duplicar
+              <Copy className="size-4" /> {t("dash.card.dup")}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
-              <Trash2 className="size-4" /> Eliminar
+              <Trash2 className="size-4" /> {t("dash.card.del")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -295,23 +301,24 @@ function BannerCard({
 }
 
 function EmptyState({ onCreate }: { onCreate: () => void }) {
+  const { t } = useI18n();
   return (
     <div className="border border-dashed border-border rounded-2xl py-20 px-6 text-center bg-surface-muted/40">
       <div className="mx-auto size-12 rounded-full bg-accent/10 grid place-items-center text-accent mb-5">
         <Sparkles className="size-5" />
       </div>
-      <h2 className="font-serif text-2xl">Aún no tienes banners</h2>
+      <h2 className="font-serif text-2xl">{t("dash.empty.title")}</h2>
       <p className="mt-2 text-sm text-muted-foreground max-w-sm mx-auto">
-        Genera tu primer banner con IA y aparecerá aquí una vez lo guardes desde el editor.
+        {t("dash.empty.desc")}
       </p>
       <Button onClick={onCreate} className="mt-6">
-        <Plus className="size-4" /> Crear primer banner
+        <Plus className="size-4" /> {t("dash.empty.cta")}
       </Button>
     </div>
   );
 }
 
-function formatDate(iso: string) {
+function formatDate(iso: string, lang: "es" | "en" = "es") {
   const d = new Date(iso);
-  return d.toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" });
+  return d.toLocaleDateString(lang === "en" ? "en-US" : "es-ES", { day: "numeric", month: "short", year: "numeric" });
 }
