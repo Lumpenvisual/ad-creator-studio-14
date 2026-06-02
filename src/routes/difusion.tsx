@@ -50,10 +50,15 @@ const INITIAL: FormState = {
 const STEPS = ["Lo Esencial", "Visuales", "Canales", "IA"];
 
 function DifusionPage() {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  const createFn = useServerFn(createEvent);
+  const genFn = useServerFn(generateEventContent);
+
+  useEffect(() => { if (!loading && !user) navigate({ to: "/login" }); }, [loading, user, navigate]);
+
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>(INITIAL);
-  const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState(false);
 
   const set = useCallback(<K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((p) => ({ ...p, [k]: v })), []);
@@ -75,14 +80,38 @@ function DifusionPage() {
   const next = () => stepValid && setStep((s) => Math.min(s + 1, STEPS.length - 1));
   const back = () => setStep((s) => Math.max(s - 1, 0));
 
-  const submit = async () => {
-    setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 3000));
-    setSubmitting(false);
-    setDone(true);
-  };
+  const submitMut = useMutation({
+    mutationFn: async () => {
+      const answers = {
+        email: form.email,
+        date: form.date,
+        time: form.time,
+        location: form.location,
+        audience: form.audience,
+        image_status: form.imageStatus,
+        attached_file: form.file?.name ?? null,
+        channels: form.channels.join(", "),
+        tone: form.tone,
+        speaker: form.speaker || null,
+      };
+      const { id } = await createFn({ data: { name: form.eventName, answers } });
+      // Disparar generación en background; no bloquear la navegación si falla
+      genFn({ data: { eventId: id } }).catch((e) => {
+        console.warn("Generación falló:", e);
+      });
+      return id;
+    },
+    onSuccess: (id) => {
+      toast.success("Solicitud creada");
+      navigate({ to: "/events/$id", params: { id } });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Error al enviar"),
+  });
 
-  if (done) return <ResultsDashboard form={form} onReset={() => { setForm(INITIAL); setStep(0); setDone(false); }} />;
+  const submitting = submitMut.isPending;
+  const submit = () => submitMut.mutate();
+
+  if (!user) return null;
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-background text-foreground">
