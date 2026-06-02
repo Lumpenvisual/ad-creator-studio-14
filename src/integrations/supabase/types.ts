@@ -65,6 +65,42 @@ export type Database = {
         }
         Relationships: []
       }
+      brand_assets: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_size: number
+          id: string
+          kind: Database["public"]["Enums"]["brand_asset_kind"]
+          mime_type: string | null
+          storage_path: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_size?: number
+          id?: string
+          kind: Database["public"]["Enums"]["brand_asset_kind"]
+          mime_type?: string | null
+          storage_path: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_size?: number
+          id?: string
+          kind?: Database["public"]["Enums"]["brand_asset_kind"]
+          mime_type?: string | null
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       brand_profiles: {
         Row: {
           accent_color: string | null
@@ -134,6 +170,75 @@ export type Database = {
           user_id?: string
           voice_tone?: string | null
           writing_style?: string | null
+        }
+        Relationships: []
+      }
+      brand_rules: {
+        Row: {
+          allowed_colors: string[]
+          created_at: string
+          id: string
+          no_alteration: boolean
+          require_trademark: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          allowed_colors?: string[]
+          created_at?: string
+          id?: string
+          no_alteration?: boolean
+          require_trademark?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          allowed_colors?: string[]
+          created_at?: string
+          id?: string
+          no_alteration?: boolean
+          require_trademark?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      event_category_rules: {
+        Row: {
+          active: boolean
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          require_trademark: boolean
+          required_logo: Database["public"]["Enums"]["brand_asset_kind"]
+          sort_order: number
+          subcategory: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          require_trademark?: boolean
+          required_logo: Database["public"]["Enums"]["brand_asset_kind"]
+          sort_order?: number
+          subcategory?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          require_trademark?: boolean
+          required_logo?: Database["public"]["Enums"]["brand_asset_kind"]
+          sort_order?: number
+          subcategory?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -379,6 +484,12 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user" | "creador" | "dev"
+      brand_asset_kind:
+        | "logo_vertical"
+        | "logo_horizontal"
+        | "logotipo"
+        | "logotipo_simplificado"
+        | "manual_pdf"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -507,6 +618,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user", "creador", "dev"],
+      brand_asset_kind: [
+        "logo_vertical",
+        "logo_horizontal",
+        "logotipo",
+        "logotipo_simplificado",
+        "manual_pdf",
+      ],
     },
   },
 } as const
