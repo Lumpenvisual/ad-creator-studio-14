@@ -83,15 +83,15 @@ function Editor() {
   const previewRef = useRef<HTMLDivElement>(null);
 
   async function handleGenerate() {
-    if (prompt.trim().length < 3) return toast.error("Write a prompt first.");
+    if (prompt.trim().length < 3) return toast.error(t("editor.toast.promptShort"));
     setGenerating(true);
     try {
       const res = await genFn({ data: { prompt, model } });
       setImageUrl(res.imageUrl);
       qc.invalidateQueries({ queryKey: ["profile"] });
-      toast.success(`Generated. ${res.creditsRemaining} credits left.`);
+      toast.success(t("editor.toast.generated", { n: res.creditsRemaining }));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Generation failed");
+      toast.error(e instanceof Error ? e.message : "Error");
     } finally { setGenerating(false); }
   }
 
