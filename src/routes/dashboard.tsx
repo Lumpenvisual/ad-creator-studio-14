@@ -50,6 +50,7 @@ function Dashboard() {
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { t, lang } = useI18n();
 
   const getAuthUrl = useServerFn(getGoogleAuthUrl);
   const getStatus = useServerFn(getGoogleConnectionStatus);
@@ -62,9 +63,10 @@ function Dashboard() {
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     const g = p.get("google");
-    if (g === "ok") toast.success("Google Drive conectado");
-    if (g === "error") toast.error(`No se pudo conectar Google Drive${p.get("msg") ? ": " + p.get("msg") : ""}`);
+    if (g === "ok") toast.success(t("dash.drive.connected"));
+    if (g === "error") toast.error(`${t("dash.drive.error")}${p.get("msg") ? ": " + p.get("msg") : ""}`);
     if (g) window.history.replaceState({}, "", "/dashboard");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const { data: drive } = useQuery({
