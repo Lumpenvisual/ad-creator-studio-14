@@ -125,7 +125,7 @@ function BannerStudio() {
 
         <main className="max-w-7xl mx-auto px-6 py-8">
           {view === "admin" && (canManage ? <AdminView /> : <Restricted />)}
-          {view === "creator" && <CreatorView />}
+          {view === "creator" && <CreatorView prefill={search} />}
         </main>
       </div>
     </TooltipProvider>
