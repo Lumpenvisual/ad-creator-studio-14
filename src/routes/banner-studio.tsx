@@ -793,16 +793,23 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
                 </Button>
               )}
             </div>
+            {aiBusy && (
+              <div className="space-y-1.5 animate-fade-in">
+                <p className="text-[11px] text-neutral-600">Sincronizando con los activos del Manual de Marca…</p>
+                <div className="h-[2px] w-full rounded-full overflow-hidden bg-emerald-100/70"><div className="sync-line h-full w-full" /></div>
+              </div>
+            )}
           </Card>
         </div>
 
 
         {/* Preview */}
         <div className="space-y-3">
-          <div className="bg-white rounded-xl border border-neutral-200 p-6 flex items-center justify-center min-h-[480px]">
+          <div className="bg-white/70 backdrop-blur rounded-2xl border border-neutral-200/70 p-6 flex items-center justify-center min-h-[480px] glass-card">
             <div
               ref={canvasRef}
-              className="relative shadow-2xl shadow-black/10 overflow-hidden ring-1 ring-black/5 transition-all duration-300"
+              key={format}
+              className="relative shadow-2xl shadow-black/15 overflow-hidden ring-1 ring-black/5 transition-all duration-500 animate-scale-in rounded-sm"
               style={{
                 background: palette.bg,
                 color: palette.fg,
@@ -815,7 +822,7 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
               {/* AI Background */}
               {bgUrl && (
                 <>
-                  <img src={bgUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  <img src={bgUrl} alt="" className="absolute inset-0 w-full h-full object-cover animate-fade-in" />
                   <div
                     className="absolute inset-0"
                     style={{
@@ -835,22 +842,35 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
                 )}
               >
                 {logo?.url ? (
-                  <img src={logo.url} alt="logo" className="max-h-[14vh] max-w-[40%] object-contain" style={{ maxHeight: format === "vertical" ? 90 : 70, maxWidth: format === "vertical" ? 140 : 180 }} />
+                  <img src={logo.url} alt="logo" className="object-contain animate-fade-in" style={{ maxHeight: format === "vertical" ? 90 : 70, maxWidth: format === "vertical" ? 140 : 180 }} />
                 ) : (
-                  <div className="text-[10px] opacity-70 px-2 py-1 ring-1 ring-current/30 rounded">
-                    {LOGO_SLOTS.find((s) => s.kind === evt.required)?.label} (no cargado)
+                  <div
+                    className="px-3 py-2 border-2 border-dashed rounded text-center"
+                    style={{ borderColor: palette.fg, opacity: 0.55, maxWidth: format === "vertical" ? 160 : 220 }}
+                  >
+                    <p className="text-[9px] uppercase tracking-widest font-semibold">
+                      {LOGO_SLOTS.find((s) => s.kind === evt.required)?.label}
+                    </p>
+                    <p className="text-[10px] mt-0.5 leading-tight" style={{ fontFamily: "Georgia, serif" }}>
+                      Asset corporativo pendiente de carga en Admin
+                    </p>
                   </div>
                 )}
               </div>
 
               {/* Text block */}
               <div className="absolute inset-x-[8%] bottom-[10%]">
-                <div className="h-[3px] mb-3" style={{ width: 40, background: palette.fg }} />
-                <h3 className="font-bold leading-[1.05] text-balance" style={{ fontSize: format === "vertical" ? 30 : format === "landscape" ? 38 : 34 }}>
-                  {title}
+                <div className="h-[3px] mb-3 transition-all duration-300" style={{ width: 40, background: palette.fg }} />
+                <h3
+                  className="font-bold leading-[1.05] text-balance break-words transition-[font-size] duration-300"
+                  style={{
+                    fontSize: (format === "vertical" ? 30 : format === "landscape" ? 38 : 34) * scaleFactor,
+                  }}
+                >
+                  {titleClean || <span className="opacity-40">Título del evento</span>}
                 </h3>
-                <p className="mt-3 opacity-90" style={{ fontSize: format === "vertical" ? 13 : 15 }}>{date}</p>
-                <p className="opacity-80" style={{ fontSize: format === "vertical" ? 12 : 14 }}>{place}</p>
+                <p className="mt-3 opacity-90" style={{ fontSize: format === "vertical" ? 13 : 15 }}>{dateClean}</p>
+                <p className="opacity-80" style={{ fontSize: format === "vertical" ? 12 : 14 }}>{placeClean}</p>
                 {evt.trademark && (
                   <p className="mt-3 text-[10px] opacity-75 uppercase tracking-widest">Marca Registrada ®</p>
                 )}
