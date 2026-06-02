@@ -172,19 +172,20 @@ function Editor() {
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link to="/dashboard" className="font-serif text-2xl">Vellum Studio</Link>
-          <div className="flex items-center gap-4">
+          <Link to="/dashboard" className="font-serif text-2xl">{t("brand")}</Link>
+          <div className="flex items-center gap-3">
             <Link to="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              ← Dashboard
+              {t("nav.dashboard")}
             </Link>
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-surface-muted rounded-full ring-1 ring-border">
               <span className="size-1.5 rounded-full bg-accent animate-pulse" />
               <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                {profile?.credits ?? "…"} créditos
+                {profile?.credits ?? "…"} {t("nav.credits")}
               </span>
             </div>
+            <LanguageSwitcher />
             <Button variant="ghost" size="sm" onClick={signOut}>
-              <LogOut className="size-4" /> Salir
+              <LogOut className="size-4" /> {t("nav.signOut")}
             </Button>
           </div>
         </div>
@@ -196,7 +197,7 @@ function Editor() {
           <aside className="space-y-4">
             <section className="p-6 bg-surface-muted rounded-xl ring-1 ring-border space-y-5">
               <div>
-                <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">Model</Label>
+                <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">{t("editor.model")}</Label>
                 <Select value={model} onValueChange={(v) => setModel(v as ImageModel)}>
                   <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -213,35 +214,35 @@ function Editor() {
               </div>
 
               <div>
-                <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">Visual prompt</Label>
+                <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">{t("editor.prompt")}</Label>
                 <Textarea
                   className="mt-2 min-h-[110px] resize-none"
-                  placeholder="Atmospheric studio lighting on a minimalist leather chair, soft shadows, warm neutral tones…"
+                  placeholder={t("editor.prompt.ph")}
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                 />
               </div>
 
               <Button onClick={handleGenerate} disabled={generating} className="w-full">
-                {generating ? <><Loader2 className="size-4 animate-spin" /> Generating…</> : <><Sparkles className="size-4" /> Generate background (1 credit)</>}
+                {generating ? <><Loader2 className="size-4 animate-spin" /> {t("editor.generating")}</> : <><Sparkles className="size-4" /> {t("editor.generate")}</>}
               </Button>
             </section>
 
             <section className="p-6 bg-surface-muted rounded-xl ring-1 ring-border space-y-4">
               <div>
-                <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">Headline</Label>
+                <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">{t("editor.headline")}</Label>
                 <Input className="mt-2" value={headline} onChange={(e) => setHeadline(e.target.value)} />
               </div>
               <div>
-                <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">Body</Label>
+                <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">{t("editor.body")}</Label>
                 <Textarea className="mt-2 min-h-[70px] resize-none" value={body} onChange={(e) => setBody(e.target.value)} />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <ColorField label="Text" value={primary} onChange={setPrimary} />
-                <ColorField label="Accent" value={accent} onChange={setAccent} />
+                <ColorField label={t("editor.text")} value={primary} onChange={setPrimary} />
+                <ColorField label={t("editor.accent")} value={accent} onChange={setAccent} />
               </div>
               <div>
-                <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">Font</Label>
+                <Label className="text-[11px] uppercase tracking-widest text-muted-foreground">{t("editor.font")}</Label>
                 <Select value={font} onValueChange={setFont}>
                   <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
                   <SelectContent>
