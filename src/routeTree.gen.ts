@@ -21,6 +21,7 @@ import { Route as EventsNewRouteImport } from './routes/events.new'
 import { Route as EventsIdRouteImport } from './routes/events.$id'
 import { Route as BrandExtractRouteImport } from './routes/brand.extract'
 import { Route as AdminQuestionnaireRouteImport } from './routes/admin.questionnaire'
+import { Route as AdminGovernanceRouteImport } from './routes/admin.governance'
 import { Route as ApiGoogleCallbackRouteImport } from './routes/api/google/callback'
 
 const SignupRoute = SignupRouteImport.update({
@@ -83,6 +84,11 @@ const AdminQuestionnaireRoute = AdminQuestionnaireRouteImport.update({
   path: '/admin/questionnaire',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminGovernanceRoute = AdminGovernanceRouteImport.update({
+  id: '/admin/governance',
+  path: '/admin/governance',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiGoogleCallbackRoute = ApiGoogleCallbackRouteImport.update({
   id: '/api/google/callback',
   path: '/api/google/callback',
@@ -98,6 +104,7 @@ export interface FileRoutesByFullPath {
   '/events': typeof EventsRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/admin/governance': typeof AdminGovernanceRoute
   '/admin/questionnaire': typeof AdminQuestionnaireRoute
   '/brand/extract': typeof BrandExtractRoute
   '/events/$id': typeof EventsIdRoute
@@ -113,6 +120,7 @@ export interface FileRoutesByTo {
   '/events': typeof EventsRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/admin/governance': typeof AdminGovernanceRoute
   '/admin/questionnaire': typeof AdminQuestionnaireRoute
   '/brand/extract': typeof BrandExtractRoute
   '/events/$id': typeof EventsIdRoute
@@ -129,6 +137,7 @@ export interface FileRoutesById {
   '/events': typeof EventsRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/admin/governance': typeof AdminGovernanceRoute
   '/admin/questionnaire': typeof AdminQuestionnaireRoute
   '/brand/extract': typeof BrandExtractRoute
   '/events/$id': typeof EventsIdRoute
@@ -146,6 +155,7 @@ export interface FileRouteTypes {
     | '/events'
     | '/login'
     | '/signup'
+    | '/admin/governance'
     | '/admin/questionnaire'
     | '/brand/extract'
     | '/events/$id'
@@ -161,6 +171,7 @@ export interface FileRouteTypes {
     | '/events'
     | '/login'
     | '/signup'
+    | '/admin/governance'
     | '/admin/questionnaire'
     | '/brand/extract'
     | '/events/$id'
@@ -176,6 +187,7 @@ export interface FileRouteTypes {
     | '/events'
     | '/login'
     | '/signup'
+    | '/admin/governance'
     | '/admin/questionnaire'
     | '/brand/extract'
     | '/events/$id'
@@ -192,6 +204,7 @@ export interface RootRouteChildren {
   EventsRoute: typeof EventsRouteWithChildren
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
+  AdminGovernanceRoute: typeof AdminGovernanceRoute
   AdminQuestionnaireRoute: typeof AdminQuestionnaireRoute
   ApiGoogleCallbackRoute: typeof ApiGoogleCallbackRoute
 }
@@ -282,6 +295,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminQuestionnaireRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/governance': {
+      id: '/admin/governance'
+      path: '/admin/governance'
+      fullPath: '/admin/governance'
+      preLoaderRoute: typeof AdminGovernanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/google/callback': {
       id: '/api/google/callback'
       path: '/api/google/callback'
@@ -324,6 +344,7 @@ const rootRouteChildren: RootRouteChildren = {
   EventsRoute: EventsRouteWithChildren,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
+  AdminGovernanceRoute: AdminGovernanceRoute,
   AdminQuestionnaireRoute: AdminQuestionnaireRoute,
   ApiGoogleCallbackRoute: ApiGoogleCallbackRoute,
 }

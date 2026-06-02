@@ -249,7 +249,7 @@ function AssetDropzone({
     }
   }, [kind, label, upsertFn, onChanged]);
 
-  const onDrop = (e: DragEvent<HTMLDivElement>) => {
+  const onDrop = (e: DragEvent<HTMLLabelElement>) => {
     e.preventDefault(); setDrag(false);
     const f = e.dataTransfer.files?.[0]; if (f) upload(f);
   };
