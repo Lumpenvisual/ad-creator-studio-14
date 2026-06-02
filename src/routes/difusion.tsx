@@ -1,5 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, useCallback, type DragEvent, type ChangeEvent } from "react";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState, useCallback, type DragEvent, type ChangeEvent } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   ArrowLeft, ArrowRight, Calendar, Clock, Mail, MapPin, Users, Image as ImageIcon,
   Upload, FileCheck2, Megaphone, Mail as MailIcon, GraduationCap, Instagram, Linkedin,
@@ -14,6 +17,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
+import { createEvent, generateEventContent } from "@/lib/events.functions";
 
 export const Route = createFileRoute("/difusion")({
   head: () => ({ meta: [{ title: "Solicitud de Difusión para Eventos" }] }),
