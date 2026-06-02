@@ -96,7 +96,7 @@ function Editor() {
   }
 
   async function renderToDataUrl(fmt: Format): Promise<string> {
-    const { w, h } = FORMATS[fmt];
+    const { w, h } = FORMAT_DIM[fmt];
     const canvas = document.createElement("canvas");
     canvas.width = w; canvas.height = h;
     const ctx = canvas.getContext("2d")!;
@@ -165,7 +165,7 @@ function Editor() {
 
   if (!user) return null;
 
-  const fmt = FORMATS[format];
+  const fmt = FORMAT_DIM[format];
   const aspect = fmt.w / fmt.h;
 
   return (
@@ -256,7 +256,7 @@ function Editor() {
           <div className="space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex gap-2">
-                {(Object.keys(FORMATS) as Format[]).map((f) => (
+                {(Object.keys(FORMAT_DIM) as Format[]).map((f) => (
                   <button
                     key={f}
                     onClick={() => setFormat(f)}
@@ -264,7 +264,7 @@ function Editor() {
                       format === f ? "bg-primary text-primary-foreground" : "bg-card ring-1 ring-border text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    {FORMATS[f].label}
+                    {FORMAT_DIM[f].label}
                   </button>
                 ))}
               </div>
@@ -276,22 +276,22 @@ function Editor() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">Descargar PNG</DropdownMenuLabel>
-                  {(Object.keys(FORMATS) as Format[]).map((f) => (
+                  {(Object.keys(FORMAT_DIM) as Format[]).map((f) => (
                     <DropdownMenuItem key={`dl-${f}`} onClick={() => handleExport(f)}>
-                      <Download className="size-4" /> {FORMATS[f].label}
+                      <Download className="size-4" /> {FORMAT_DIM[f].label}
                     </DropdownMenuItem>
                   ))}
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
                     Google Drive {drive?.connected ? "" : "(no conectado)"}
                   </DropdownMenuLabel>
-                  {(Object.keys(FORMATS) as Format[]).map((f) => (
+                  {(Object.keys(FORMAT_DIM) as Format[]).map((f) => (
                     <DropdownMenuItem
                       key={`gd-${f}`}
                       disabled={!drive?.connected}
                       onClick={() => handleUploadDrive(f)}
                     >
-                      <HardDrive className="size-4" /> {FORMATS[f].label}
+                      <HardDrive className="size-4" /> {FORMAT_DIM[f].label}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
