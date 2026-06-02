@@ -42,12 +42,18 @@ function Editor() {
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { t } = useI18n();
   const genFn = useServerFn(generateBannerImage);
   const uploadDrive = useServerFn(uploadBannerToDrive);
   const getDrive = useServerFn(getGoogleConnectionStatus);
   const { data: drive } = useQuery({
     queryKey: ["google-conn", user?.id], enabled: !!user, queryFn: () => getDrive(),
   });
+  const FORMAT_LABEL: Record<Format, string> = {
+    square: t("fmt.square"),
+    vertical: t("fmt.vertical"),
+    horizontal: t("fmt.horizontal"),
+  };
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/login" });
