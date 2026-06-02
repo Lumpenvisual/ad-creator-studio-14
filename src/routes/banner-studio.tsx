@@ -22,6 +22,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import { getMyRoles } from "@/lib/events.functions";
 import { listBrandAssets, upsertBrandAsset, deleteBrandAsset, listCategoryRules } from "@/lib/governance.functions";
+import { generateBannerImage, type ImageModel } from "@/lib/ai.functions";
+import { assistEventPrompt } from "@/lib/ai.functions";
+import { Textarea } from "@/components/ui/textarea";
 
 type BannerSearch = {
   eventId?: string;
@@ -415,6 +418,14 @@ const PALETTE = [
   { id: "black", label: "Negro", bg: BLACK, fg: WHITE },
 ] as const;
 
+const IMAGE_MODELS: { id: ImageModel; label: string; tag: string; free: boolean }[] = [
+  { id: "google/gemini-2.5-flash-image", label: "Gemini 2.5 Flash Image (Nano Banana)", tag: "Gratis · Gateway", free: true },
+  { id: "google/gemini-3.1-flash-image-preview", label: "Gemini 3.1 Flash Image (Nano Banana 2)", tag: "Gratis · Gateway", free: true },
+  { id: "google/gemini-3-pro-image-preview", label: "Gemini 3 Pro Image", tag: "Gratis · Gateway", free: true },
+  { id: "openai/gpt-image-1-mini", label: "GPT Image 1 Mini", tag: "Económico", free: false },
+  { id: "openai/gpt-image-2", label: "GPT Image 2", tag: "Premium", free: false },
+];
+
 function CreatorView({ prefill }: { prefill?: BannerSearch }) {
   const listAssetsFn = useServerFn(listBrandAssets);
   const { data: assetsData } = useQuery({ queryKey: ["brand_assets"], queryFn: () => listAssetsFn() });
@@ -429,11 +440,48 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
   const [place, setPlace] = useState(prefill?.place ?? "Teatro Universitario · UdeA");
   const [downloading, setDownloading] = useState(false);
 
+  // AI background
+  const [aiModel, setAiModel] = useState<ImageModel>("google/gemini-2.5-flash-image");
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
+  const [assistBusy, setAssistBusy] = useState(false);
+  const [bgUrl, setBgUrl] = useState<string | null>(null);
+  const genFn = useServerFn(generateBannerImage);
+  const assistFn = useServerFn(assistEventPrompt);
+
   const canvasRef = useRef<HTMLDivElement>(null);
   const fmt = FORMATS.find((f) => f.id === format)!;
   const evt = EVENT_TYPES.find((e) => e.id === eventType)!;
   const palette = PALETTE.find((p) => p.id === paletteId)!;
   const logo = byKind[evt.required];
+
+  async function handleAssist() {
+    setAssistBusy(true);
+    try {
+      const r = await assistFn({ data: {
+        title, date, place,
+        eventType: EVENT_TYPES.find(e => e.id === eventType)?.label,
+        paletteLabel: palette.label,
+      }});
+      setAiPrompt(r.prompt);
+      toast.success("Prompt generado por el asistente");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error");
+    } finally { setAssistBusy(false); }
+  }
+
+  async function handleGenerate() {
+    const p = aiPrompt.trim();
+    if (p.length < 5) return toast.error("Escribe un prompt o usa el asistente");
+    setAiBusy(true);
+    try {
+      const r = await genFn({ data: { prompt: p, model: aiModel } });
+      setBgUrl(r.imageUrl);
+      toast.success("Fondo generado");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error");
+    } finally { setAiBusy(false); }
+  }
 
   async function handleDownload() {
     if (!canvasRef.current) return;
@@ -446,7 +494,24 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
       ctx.fillStyle = palette.bg;
       ctx.fillRect(0, 0, w, h);
 
-      // logo
+      // AI background
+      if (bgUrl) {
+        try {
+          const bg = new Image();
+          bg.crossOrigin = "anonymous";
+          await new Promise<void>((res, rej) => { bg.onload = () => res(); bg.onerror = () => rej(); bg.src = bgUrl; });
+          // cover
+          const r = Math.max(w / bg.width, h / bg.height);
+          const iw = bg.width * r, ih = bg.height * r;
+          ctx.drawImage(bg, (w - iw) / 2, (h - ih) / 2, iw, ih);
+          // dark gradient overlay for legibility
+          const g = ctx.createLinearGradient(0, h * 0.4, 0, h);
+          g.addColorStop(0, "rgba(0,0,0,0)");
+          g.addColorStop(1, palette.id === "white" ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.55)");
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, w, h);
+        } catch {}
+      }
       if (logo?.url) {
         try {
           const img = new Image();
@@ -587,7 +652,90 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
               <Input value={place} onChange={(e) => setPlace(e.target.value)} className="mt-1" />
             </div>
           </Card>
+
+          {/* AI Background Generator */}
+          <Card className="p-5 border-neutral-200 space-y-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="size-4" style={{ color: GREEN }} />
+              <p className="text-[10px] uppercase tracking-widest text-neutral-500">Fondo generado por IA</p>
+            </div>
+
+            <div>
+              <Label className="text-[11px]">Modelo de generación</Label>
+              <Select value={aiModel} onValueChange={(v) => setAiModel(v as ImageModel)}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {IMAGE_MODELS.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{m.label}</span>
+                        <span
+                          className="text-[9px] px-1.5 py-0.5 rounded-full"
+                          style={{
+                            background: m.free ? "#dcfce7" : "#f1f5f9",
+                            color: m.free ? GREEN_DARK : "#475569",
+                          }}
+                        >
+                          {m.tag}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-neutral-500 mt-1">
+                Gemini vía Lovable AI Gateway: gratuito en el plan incluido. GPT Image consume créditos.
+              </p>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between">
+                <Label className="text-[11px]">Prompt</Label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleAssist}
+                      disabled={assistBusy}
+                      className="h-7 text-[11px]"
+                    >
+                      {assistBusy ? <Loader2 className="size-3 animate-spin" /> : <Wand2 className="size-3" />}
+                      Asistente
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Genera un prompt automáticamente usando los datos del evento.</TooltipContent>
+                </Tooltip>
+              </div>
+              <Textarea
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                placeholder="Ej: fondo abstracto verde institucional con formas geométricas sutiles y espacio negativo en la parte inferior..."
+                rows={4}
+                className="mt-1 text-[12px]"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleGenerate}
+                disabled={aiBusy}
+                style={{ background: GREEN }}
+                className="text-white hover:opacity-90 flex-1"
+              >
+                {aiBusy ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+                Generar fondo
+              </Button>
+              {bgUrl && (
+                <Button type="button" variant="outline" onClick={() => setBgUrl(null)} className="text-[11px]">
+                  Quitar
+                </Button>
+              )}
+            </div>
+          </Card>
         </div>
+
 
         {/* Preview */}
         <div className="space-y-3">
@@ -604,6 +752,21 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
                 fontFamily: "Georgia, serif",
               }}
             >
+              {/* AI Background */}
+              {bgUrl && (
+                <>
+                  <img src={bgUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background: palette.id === "white"
+                        ? "linear-gradient(to bottom, rgba(255,255,255,0) 40%, rgba(255,255,255,0.85) 100%)"
+                        : "linear-gradient(to bottom, rgba(0,0,0,0) 40%, rgba(0,0,0,0.55) 100%)",
+                    }}
+                  />
+                </>
+              )}
+
               {/* Logo */}
               <div
                 className={cn(

@@ -2,6 +2,66 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+/**
+ * Build an image-generation prompt from event metadata using a chat model.
+ * Uses Lovable AI Gateway (no separate API key needed).
+ */
+const AssistInput = z.object({
+  title: z.string().min(1).max(300),
+  date: z.string().max(200).optional(),
+  place: z.string().max(200).optional(),
+  eventType: z.string().max(120).optional(),
+  description: z.string().max(2000).optional(),
+  paletteLabel: z.string().max(80).optional(),
+});
+
+export const assistEventPrompt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => AssistInput.parse(d))
+  .handler(async ({ data }) => {
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("AI gateway no configurado");
+
+    const sys =
+      "Eres un director de arte institucional de la Universidad de Antioquia. " +
+      "Genera UN solo prompt en español (máx 90 palabras) para un modelo de generación de imágenes " +
+      "que produzca un FONDO de banner abstracto, elegante y minimalista para un evento universitario. " +
+      "Restricciones obligatorias: paleta institucional (verde #006547, blanco, negro), sin texto, " +
+      "sin logotipos, sin personas reconocibles, composición con espacio negativo en la parte inferior " +
+      "para sobreponer texto. Responde SOLO el prompt, sin comillas ni explicaciones.";
+
+    const userMsg = [
+      `Evento: ${data.title}`,
+      data.eventType && `Tipo: ${data.eventType}`,
+      data.date && `Fecha: ${data.date}`,
+      data.place && `Lugar: ${data.place}`,
+      data.paletteLabel && `Paleta dominante: ${data.paletteLabel}`,
+      data.description && `Descripción: ${data.description}`,
+    ].filter(Boolean).join("\n");
+
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: sys },
+          { role: "user", content: userMsg },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      const t = await res.text();
+      if (res.status === 429) throw new Error("Límite de uso alcanzado, intenta en un momento.");
+      if (res.status === 402) throw new Error("Créditos de IA agotados en el workspace.");
+      throw new Error(`Fallo en asistente: ${t.slice(0, 200)}`);
+    }
+    const json = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
+    const prompt = json.choices?.[0]?.message?.content?.trim();
+    if (!prompt) throw new Error("El asistente no devolvió un prompt.");
+    return { prompt };
+  });
+
 const MODELS = [
   "openai/gpt-image-2",
   "openai/gpt-image-1-mini",
