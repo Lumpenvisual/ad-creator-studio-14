@@ -65,7 +65,7 @@ function Editor() {
   const [headline, setHeadline] = useState("Modern Comfort");
   const [body, setBody] = useState("Designed for the refined living space.");
   const [prompt, setPrompt] = useState("");
-  const [model, setModel] = useState<ImageModel>("google/gemini-2.5-flash-image");
+  const [model, setModel] = useState<ImageModel>("openai/gpt-image-2");
   const [primary, setPrimary] = useState("#ffffff");
   const [accent, setAccent] = useState("#9a3412");
   const [font, setFont] = useState("Instrument Serif");
