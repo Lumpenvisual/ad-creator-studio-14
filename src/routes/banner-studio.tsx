@@ -418,6 +418,14 @@ const PALETTE = [
   { id: "black", label: "Negro", bg: BLACK, fg: WHITE },
 ] as const;
 
+const IMAGE_MODELS: { id: ImageModel; label: string; tag: string; free: boolean }[] = [
+  { id: "google/gemini-2.5-flash-image", label: "Gemini 2.5 Flash Image (Nano Banana)", tag: "Gratis · Gateway", free: true },
+  { id: "google/gemini-3.1-flash-image-preview", label: "Gemini 3.1 Flash Image (Nano Banana 2)", tag: "Gratis · Gateway", free: true },
+  { id: "google/gemini-3-pro-image-preview", label: "Gemini 3 Pro Image", tag: "Gratis · Gateway", free: true },
+  { id: "openai/gpt-image-1-mini", label: "GPT Image 1 Mini", tag: "Económico", free: false },
+  { id: "openai/gpt-image-2", label: "GPT Image 2", tag: "Premium", free: false },
+];
+
 function CreatorView({ prefill }: { prefill?: BannerSearch }) {
   const listAssetsFn = useServerFn(listBrandAssets);
   const { data: assetsData } = useQuery({ queryKey: ["brand_assets"], queryFn: () => listAssetsFn() });
@@ -432,11 +440,48 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
   const [place, setPlace] = useState(prefill?.place ?? "Teatro Universitario · UdeA");
   const [downloading, setDownloading] = useState(false);
 
+  // AI background
+  const [aiModel, setAiModel] = useState<ImageModel>("google/gemini-2.5-flash-image");
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
+  const [assistBusy, setAssistBusy] = useState(false);
+  const [bgUrl, setBgUrl] = useState<string | null>(null);
+  const genFn = useServerFn(generateBannerImage);
+  const assistFn = useServerFn(assistEventPrompt);
+
   const canvasRef = useRef<HTMLDivElement>(null);
   const fmt = FORMATS.find((f) => f.id === format)!;
   const evt = EVENT_TYPES.find((e) => e.id === eventType)!;
   const palette = PALETTE.find((p) => p.id === paletteId)!;
   const logo = byKind[evt.required];
+
+  async function handleAssist() {
+    setAssistBusy(true);
+    try {
+      const r = await assistFn({ data: {
+        title, date, place,
+        eventType: EVENT_TYPES.find(e => e.id === eventType)?.label,
+        paletteLabel: palette.label,
+      }});
+      setAiPrompt(r.prompt);
+      toast.success("Prompt generado por el asistente");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error");
+    } finally { setAssistBusy(false); }
+  }
+
+  async function handleGenerate() {
+    const p = aiPrompt.trim();
+    if (p.length < 5) return toast.error("Escribe un prompt o usa el asistente");
+    setAiBusy(true);
+    try {
+      const r = await genFn({ data: { prompt: p, model: aiModel } });
+      setBgUrl(r.imageUrl);
+      toast.success("Fondo generado");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error");
+    } finally { setAiBusy(false); }
+  }
 
   async function handleDownload() {
     if (!canvasRef.current) return;
