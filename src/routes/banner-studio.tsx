@@ -127,8 +127,13 @@ function BannerStudio() {
         </header>
 
         <main className="max-w-7xl mx-auto px-6 py-8">
-          {view === "admin" && (canManage ? <AdminView /> : <Restricted />)}
-          {view === "creator" && <CreatorView prefill={search} />}
+          {/* Both views are kept mounted to preserve state across tab switches */}
+          <div className={cn(view === "admin" ? "block" : "hidden")}>
+            {canManage ? <AdminView /> : <Restricted />}
+          </div>
+          <div className={cn(view === "creator" ? "block" : "hidden")}>
+            <CreatorView prefill={search} />
+          </div>
         </main>
       </div>
     </TooltipProvider>
@@ -228,11 +233,13 @@ function PdfDropzone({ current, onChanged }: { current?: AssetRow; onChanged: ()
   const upsertFn = useServerFn(upsertBrandAsset);
   const delFn = useServerFn(deleteBrandAsset);
 
-  const upload = useCallback(async (files: FileList) => {
+  const upload = useCallback(async (files: FileList | File[]) => {
     const file = files[0];
     if (!file) return;
-    if (file.type !== "application/pdf") return toast.error("Solo archivos PDF");
-    if (file.size > 15 * 1024 * 1024) return toast.error("Máx 15 MB");
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      return toast.error("Formato no válido. Por favor, suba el Manual de Marca en formato PDF.");
+    }
+    if (file.size > 15 * 1024 * 1024) return toast.error("El archivo supera los 15 MB.");
     setBusy(true);
     try {
       const path = `manual_pdf/${Date.now()}.pdf`;
@@ -253,18 +260,24 @@ function PdfDropzone({ current, onChanged }: { current?: AssetRow; onChanged: ()
 
   return (
     <label
-      onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
-      onDragLeave={() => setDrag(false)}
+      onDragOver={(e) => { e.preventDefault(); if (!drag) setDrag(true); }}
+      onDragLeave={(e) => { e.preventDefault(); setDrag(false); }}
       onDrop={(e) => { e.preventDefault(); setDrag(false); if (e.dataTransfer.files?.length) upload(e.dataTransfer.files); }}
       className={cn(
-        "relative block rounded-xl border-2 border-dashed p-6 cursor-pointer transition bg-white",
-        drag ? "border-[color:var(--g)] bg-emerald-50/40" : "border-neutral-200 hover:border-neutral-300",
+        "relative block rounded-xl border-2 border-dashed p-6 cursor-pointer transition-all duration-300 ease-out glass-card",
+        drag ? "border-[color:var(--g)] bg-emerald-50/60 dropzone-active" : "border-neutral-200/80 hover:border-neutral-300",
       )}
       style={{ ["--g" as any]: GREEN }}
     >
       <input type="file" accept="application/pdf" className="hidden" onChange={(e) => e.target.files && upload(e.target.files)} />
       {busy ? (
-        <div className="flex items-center gap-3 text-sm text-neutral-600"><Loader2 className="size-4 animate-spin" /> Procesando…</div>
+        <div className="space-y-2">
+          <div className="flex items-center gap-3 text-sm text-neutral-700">
+            <Loader2 className="size-4 animate-spin" style={{ color: GREEN }} />
+            Sincronizando con los activos del Manual de Marca…
+          </div>
+          <div className="h-[2px] w-full rounded-full overflow-hidden bg-emerald-100/70"><div className="sync-line h-full w-full" /></div>
+        </div>
       ) : current ? (
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
@@ -286,9 +299,9 @@ function PdfDropzone({ current, onChanged }: { current?: AssetRow; onChanged: ()
           </Button>
         </div>
       ) : (
-        <div className="text-center py-4">
-          <UploadCloud className="size-7 mx-auto mb-2 text-neutral-400" />
-          <p className="text-sm font-medium">Adjuntar Manual de Marca (.PDF)</p>
+        <div className="text-center py-4 transition-transform" style={{ transform: drag ? "scale(1.02)" : "scale(1)" }}>
+          <UploadCloud className={cn("size-7 mx-auto mb-2 transition-colors", drag ? "" : "text-neutral-400")} style={drag ? { color: GREEN } : undefined} />
+          <p className="text-sm font-medium">{drag ? "Suelta el PDF aquí" : "Adjuntar Manual de Marca (.PDF)"}</p>
           <p className="text-xs text-neutral-500 mt-1">Arrastra o haz clic — máx 15 MB</p>
         </div>
       )}
@@ -310,8 +323,10 @@ function LogoSlot({ kind, label, hint, current, onChanged }: { kind: LogoKind; l
   useEffect(() => { localStorage.setItem(`bs_variants_${kind}`, JSON.stringify(variants)); }, [variants, kind]);
 
   const upload = async (file: File) => {
-    if (!file.type.startsWith("image/")) return toast.error("Solo imágenes");
-    if (file.size > 10 * 1024 * 1024) return toast.error("Máx 10 MB");
+    if (!file.type.startsWith("image/")) {
+      return toast.error("Formato no válido. Suba el logo en PNG o SVG.");
+    }
+    if (file.size > 10 * 1024 * 1024) return toast.error("El archivo supera los 10 MB.");
     setBusy(true);
     try {
       const ext = file.name.split(".").pop() || "png";
@@ -332,7 +347,7 @@ function LogoSlot({ kind, label, hint, current, onChanged }: { kind: LogoKind; l
   };
 
   return (
-    <Card className="p-4 border-neutral-200">
+    <Card className="p-4 border-neutral-200/70 glass-card">
       <div className="flex items-start justify-between mb-3">
         <div>
           <p className="text-sm font-semibold">{label}</p>
@@ -342,24 +357,24 @@ function LogoSlot({ kind, label, hint, current, onChanged }: { kind: LogoKind; l
       </div>
 
       <label
-        onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
-        onDragLeave={() => setDrag(false)}
+        onDragOver={(e) => { e.preventDefault(); if (!drag) setDrag(true); }}
+        onDragLeave={(e) => { e.preventDefault(); setDrag(false); }}
         onDrop={(e) => { e.preventDefault(); setDrag(false); const f = e.dataTransfer.files?.[0]; if (f) upload(f); }}
         className={cn(
-          "relative block rounded-lg border-2 border-dashed transition cursor-pointer aspect-[4/2] grid place-content-center bg-neutral-50",
-          drag ? "border-[color:var(--g)] bg-emerald-50/40" : "border-neutral-200 hover:border-neutral-300",
+          "relative block rounded-lg border-2 border-dashed transition-all duration-300 ease-out cursor-pointer aspect-[4/2] grid place-content-center bg-neutral-50/50",
+          drag ? "border-[color:var(--g)] bg-emerald-50/60 dropzone-active" : "border-neutral-200 hover:border-neutral-300",
         )}
         style={{ ["--g" as any]: GREEN }}
       >
         <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); }} />
         {busy ? (
-          <Loader2 className="size-5 animate-spin text-neutral-400" />
+          <Loader2 className="size-5 animate-spin" style={{ color: GREEN }} />
         ) : current?.url ? (
           <img src={current.url} alt={label} className="max-h-24 max-w-[80%] object-contain mx-auto" />
         ) : (
-          <div className="text-center text-neutral-400">
-            <UploadCloud className="size-5 mx-auto mb-1" />
-            <p className="text-[11px]">Subir PNG / SVG</p>
+          <div className="text-center text-neutral-400 transition-transform" style={{ transform: drag ? "scale(1.05)" : "scale(1)" }}>
+            <UploadCloud className={cn("size-5 mx-auto mb-1", drag && "text-emerald-700")} />
+            <p className={cn("text-[11px]", drag && "text-emerald-800 font-medium")}>{drag ? "Suelta la imagen" : "Subir PNG / SVG"}</p>
           </div>
         )}
       </label>
@@ -455,6 +470,22 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
   const palette = PALETTE.find((p) => p.id === paletteId)!;
   const logo = byKind[evt.required];
 
+  // Sanitization: trim whitespace to avoid breaking canvas alignment
+  const titleClean = useMemo(() => title.replace(/\s+/g, " ").trim(), [title]);
+  const dateClean = useMemo(() => date.trim(), [date]);
+  const placeClean = useMemo(() => place.trim(), [place]);
+
+  // Safety guard-rail: dynamic font-scale + overflow warning
+  const TITLE_SAFE_MAX = 70; // chars before considered too long
+  const overLimit = titleClean.length > TITLE_SAFE_MAX;
+  const scaleFactor = useMemo(() => {
+    const len = titleClean.length;
+    if (len <= 40) return 1;
+    if (len <= 60) return 0.88;
+    if (len <= 90) return 0.74;
+    return 0.62; // minimum safe size
+  }, [titleClean]);
+
   async function handleAssist() {
     setAssistBusy(true);
     try {
@@ -531,17 +562,18 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
       ctx.fillStyle = palette.fg;
       ctx.fillRect(w * 0.08, h * 0.5, w * 0.06, 6);
 
-      // title
+      // title (auto-scaled to safe-zone)
       ctx.fillStyle = palette.fg;
       ctx.textBaseline = "top";
-      ctx.font = `bold ${Math.round(w * 0.06)}px Georgia, serif`;
-      wrap(ctx, title, w * 0.08, h * 0.52, w * 0.84, Math.round(w * 0.07));
+      const baseTitlePx = Math.round(w * 0.06 * scaleFactor);
+      ctx.font = `bold ${baseTitlePx}px Georgia, serif`;
+      wrap(ctx, titleClean, w * 0.08, h * 0.52, w * 0.84, Math.round(baseTitlePx * 1.15));
       // date
       ctx.font = `${Math.round(w * 0.028)}px Georgia, serif`;
-      ctx.fillText(date, w * 0.08, h * 0.78);
+      ctx.fillText(dateClean, w * 0.08, h * 0.78);
       // place
       ctx.font = `${Math.round(w * 0.024)}px Georgia, serif`;
-      ctx.fillText(place, w * 0.08, h * 0.84);
+      ctx.fillText(placeClean, w * 0.08, h * 0.84);
 
       if (evt.trademark) {
         ctx.font = `${Math.round(w * 0.018)}px Georgia, serif`;
@@ -570,7 +602,7 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
       <div className="grid lg:grid-cols-[420px_1fr] gap-6 items-start">
         {/* Controls */}
         <div className="space-y-4">
-          <Card className="p-5 border-neutral-200 space-y-4">
+          <Card className="p-6 border-neutral-200/70 glass-card space-y-5">
             <div>
               <Label className="text-[10px] uppercase tracking-widest text-neutral-500">Canal / Formato</Label>
               <div className="grid grid-cols-3 gap-2 mt-2">
@@ -579,7 +611,7 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
                     key={f.id}
                     onClick={() => setFormat(f.id)}
                     className={cn(
-                      "rounded-lg border p-2 text-left transition",
+                      "rounded-lg border p-2 text-left transition-all duration-200 hover:-translate-y-0.5",
                       format === f.id ? "border-[color:var(--g)] ring-2 ring-[color:var(--g)]/15 bg-emerald-50/40" : "border-neutral-200 hover:border-neutral-300 bg-white",
                     )}
                     style={{ ["--g" as any]: GREEN }}
@@ -596,14 +628,26 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
             </div>
 
             <div>
-              <Label className="text-[10px] uppercase tracking-widest text-neutral-500">Tipo de Evento</Label>
+              <div className="flex items-center gap-1.5">
+                <Label className="text-[10px] uppercase tracking-widest text-neutral-500">Tipo de Evento</Label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="text-neutral-400 hover:text-neutral-700"><Info className="size-3" /></button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-xs">
+                    {evt.id === "rituales" && "Uso obligatorio del logosímbolo vertical según la Guía Temática Institucional."}
+                    {evt.id === "academico" && "Logosímbolo horizontal para actividades académicas y de docencia."}
+                    {evt.id === "merchandising" && "Logotipo ® obligatorio en piezas promocionales y merchandising."}
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <Select value={eventType} onValueChange={(v) => setEventType(v as EventType)}>
                 <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {EVENT_TYPES.map((e) => <SelectItem key={e.id} value={e.id}>{e.label}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <div className="mt-2 flex items-start gap-2 p-2.5 rounded-md bg-emerald-50/60 border border-emerald-100">
+              <div className="mt-2 flex items-start gap-2 p-2.5 rounded-md bg-emerald-50/60 border border-emerald-100 animate-fade-in">
                 <Info className="size-3.5 mt-0.5 shrink-0" style={{ color: GREEN }} />
                 <p className="text-[11px] text-emerald-900 leading-snug">
                   Regla activa: se usa <strong>{LOGO_SLOTS.find((s) => s.kind === evt.required)?.label}</strong>
@@ -637,11 +681,27 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
             </div>
           </Card>
 
-          <Card className="p-5 border-neutral-200 space-y-3">
+          <Card className="p-6 border-neutral-200/70 glass-card space-y-4">
             <p className="text-[10px] uppercase tracking-widest text-neutral-500">Contenido del banner</p>
             <div>
               <Label className="text-[11px]">Título del Evento</Label>
               <Input value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1" />
+              <div className="mt-1.5 flex items-center justify-between">
+                <span className={cn("text-[10px]", overLimit ? "text-amber-700 font-medium" : "text-neutral-400")}>
+                  {titleClean.length} / {TITLE_SAFE_MAX} caracteres seguros
+                </span>
+                {scaleFactor < 1 && !overLimit && (
+                  <span className="text-[10px] text-neutral-500">Escalado automático ×{scaleFactor.toFixed(2)}</span>
+                )}
+              </div>
+              {overLimit && (
+                <div className="mt-2 flex items-start gap-2 p-2 rounded-md bg-amber-50 border border-amber-200 animate-fade-in">
+                  <Info className="size-3.5 mt-0.5 shrink-0 text-amber-700" />
+                  <p className="text-[11px] text-amber-900 leading-snug">
+                    El texto es muy largo. Redúzcalo para mantener las márgenes de seguridad institucional.
+                  </p>
+                </div>
+              )}
             </div>
             <div>
               <Label className="text-[11px]">Fecha / Hora</Label>
@@ -654,7 +714,7 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
           </Card>
 
           {/* AI Background Generator */}
-          <Card className="p-5 border-neutral-200 space-y-3">
+          <Card className="p-6 border-neutral-200/70 glass-card space-y-4">
             <div className="flex items-center gap-2">
               <Sparkles className="size-4" style={{ color: GREEN }} />
               <p className="text-[10px] uppercase tracking-widest text-neutral-500">Fondo generado por IA</p>
@@ -733,16 +793,23 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
                 </Button>
               )}
             </div>
+            {aiBusy && (
+              <div className="space-y-1.5 animate-fade-in">
+                <p className="text-[11px] text-neutral-600">Sincronizando con los activos del Manual de Marca…</p>
+                <div className="h-[2px] w-full rounded-full overflow-hidden bg-emerald-100/70"><div className="sync-line h-full w-full" /></div>
+              </div>
+            )}
           </Card>
         </div>
 
 
         {/* Preview */}
         <div className="space-y-3">
-          <div className="bg-white rounded-xl border border-neutral-200 p-6 flex items-center justify-center min-h-[480px]">
+          <div className="bg-white/70 backdrop-blur rounded-2xl border border-neutral-200/70 p-6 flex items-center justify-center min-h-[480px] glass-card">
             <div
               ref={canvasRef}
-              className="relative shadow-2xl shadow-black/10 overflow-hidden ring-1 ring-black/5 transition-all duration-300"
+              key={format}
+              className="relative shadow-2xl shadow-black/15 overflow-hidden ring-1 ring-black/5 transition-all duration-500 animate-scale-in rounded-sm"
               style={{
                 background: palette.bg,
                 color: palette.fg,
@@ -755,7 +822,7 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
               {/* AI Background */}
               {bgUrl && (
                 <>
-                  <img src={bgUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  <img src={bgUrl} alt="" className="absolute inset-0 w-full h-full object-cover animate-fade-in" />
                   <div
                     className="absolute inset-0"
                     style={{
@@ -775,22 +842,35 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
                 )}
               >
                 {logo?.url ? (
-                  <img src={logo.url} alt="logo" className="max-h-[14vh] max-w-[40%] object-contain" style={{ maxHeight: format === "vertical" ? 90 : 70, maxWidth: format === "vertical" ? 140 : 180 }} />
+                  <img src={logo.url} alt="logo" className="object-contain animate-fade-in" style={{ maxHeight: format === "vertical" ? 90 : 70, maxWidth: format === "vertical" ? 140 : 180 }} />
                 ) : (
-                  <div className="text-[10px] opacity-70 px-2 py-1 ring-1 ring-current/30 rounded">
-                    {LOGO_SLOTS.find((s) => s.kind === evt.required)?.label} (no cargado)
+                  <div
+                    className="px-3 py-2 border-2 border-dashed rounded text-center"
+                    style={{ borderColor: palette.fg, opacity: 0.55, maxWidth: format === "vertical" ? 160 : 220 }}
+                  >
+                    <p className="text-[9px] uppercase tracking-widest font-semibold">
+                      {LOGO_SLOTS.find((s) => s.kind === evt.required)?.label}
+                    </p>
+                    <p className="text-[10px] mt-0.5 leading-tight" style={{ fontFamily: "Georgia, serif" }}>
+                      Asset corporativo pendiente de carga en Admin
+                    </p>
                   </div>
                 )}
               </div>
 
               {/* Text block */}
               <div className="absolute inset-x-[8%] bottom-[10%]">
-                <div className="h-[3px] mb-3" style={{ width: 40, background: palette.fg }} />
-                <h3 className="font-bold leading-[1.05] text-balance" style={{ fontSize: format === "vertical" ? 30 : format === "landscape" ? 38 : 34 }}>
-                  {title}
+                <div className="h-[3px] mb-3 transition-all duration-300" style={{ width: 40, background: palette.fg }} />
+                <h3
+                  className="font-bold leading-[1.05] text-balance break-words transition-[font-size] duration-300"
+                  style={{
+                    fontSize: (format === "vertical" ? 30 : format === "landscape" ? 38 : 34) * scaleFactor,
+                  }}
+                >
+                  {titleClean || <span className="opacity-40">Título del evento</span>}
                 </h3>
-                <p className="mt-3 opacity-90" style={{ fontSize: format === "vertical" ? 13 : 15 }}>{date}</p>
-                <p className="opacity-80" style={{ fontSize: format === "vertical" ? 12 : 14 }}>{place}</p>
+                <p className="mt-3 opacity-90" style={{ fontSize: format === "vertical" ? 13 : 15 }}>{dateClean}</p>
+                <p className="opacity-80" style={{ fontSize: format === "vertical" ? 12 : 14 }}>{placeClean}</p>
                 {evt.trademark && (
                   <p className="mt-3 text-[10px] opacity-75 uppercase tracking-widest">Marca Registrada ®</p>
                 )}
@@ -798,25 +878,35 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
             </div>
           </div>
 
+          {/* Overflow guardrail under canvas */}
+          {overLimit && (
+            <div className="flex items-start gap-2 p-3 rounded-md bg-amber-50 border border-amber-200 text-[12px] text-amber-900 animate-fade-in">
+              <Info className="size-4 shrink-0 mt-0.5" />
+              El texto es muy largo. Redúzcalo para mantener las márgenes de seguridad institucional.
+            </div>
+          )}
+
           {/* Compliance bar */}
-          <div className="flex items-center justify-between gap-3 p-3 rounded-lg border border-emerald-200 bg-emerald-50/60">
-            <div className="flex items-center gap-2 text-[12px] font-medium" style={{ color: GREEN_DARK }}>
+          <div className="flex items-center justify-between gap-3 p-3 rounded-lg border border-emerald-200 bg-emerald-50/70 backdrop-blur">
+            <div className="flex items-center gap-2 text-[12px] font-medium flex-wrap" style={{ color: GREEN_DARK }}>
               <ShieldCheck className="size-4" />
               Gobernanza de Marca: Cumpliendo con el Manual de Identidad
-              <Badge className="ml-2 border-0 text-[10px] h-5" style={{ background: GREEN, color: "white" }}>OK</Badge>
+              <Badge className="ml-1 border-0 text-[10px] h-5" style={{ background: GREEN, color: "white" }}>OK</Badge>
+              <Badge variant="outline" className="border-emerald-300 text-emerald-800 text-[10px] h-5">Contraste validado</Badge>
             </div>
-            <Button onClick={handleDownload} disabled={downloading} style={{ background: GREEN }} className="text-white hover:opacity-90">
+            <Button onClick={handleDownload} disabled={downloading} style={{ background: GREEN }} className="text-white hover:opacity-90 transition-transform hover:scale-[1.02]">
               {downloading ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
               Descargar Banner Adaptado
             </Button>
           </div>
 
           {!logo && (
-            <div className="flex items-start gap-2 p-3 rounded-md bg-amber-50 border border-amber-200 text-[12px] text-amber-900">
+            <div className="flex items-start gap-2 p-3 rounded-md bg-amber-50 border border-amber-200 text-[12px] text-amber-900 animate-fade-in">
               <Info className="size-4 shrink-0 mt-0.5" />
-              El logo requerido para este tipo de evento aún no se ha cargado en la vista Admin.
+              El logo requerido para este tipo de evento aún no se ha cargado en la vista Admin. Se mostrará un marcador con guías de marca hasta que un administrador lo añada.
             </div>
           )}
+
         </div>
       </div>
     </div>

@@ -124,27 +124,32 @@ function DifusionPage() {
 
   const submitMut = useMutation({
     mutationFn: async () => {
+      // Sanitization: trim whitespace so live canvas alignment is preserved
+      const cleanName = form.eventName.trim().replace(/\s+/g, " ");
+      const cleanLocation = form.location.trim();
+      const cleanSpeaker = form.speaker.trim();
+      const cleanEmail = form.email.trim();
       const answers = {
-        email: form.email,
+        email: cleanEmail,
         category: form.category,
         category_label: CATEGORIES.find((c) => c.value === form.category)?.label ?? "",
         required_logo: activeRule?.required_logo ?? null,
         require_trademark: activeRule?.require_trademark ? "sí" : "no",
         date: form.date,
         time: form.time,
-        location: form.location,
+        location: cleanLocation,
         audience: form.audience,
         image_status: form.imageStatus,
         attached_file: form.file?.name ?? null,
         channels: form.channels.join(", "),
         tone: form.tone,
-        speaker: form.speaker || null,
+        speaker: cleanSpeaker || null,
       };
-      const { id } = await createFn({ data: { name: form.eventName, answers } });
+      const { id } = await createFn({ data: { name: cleanName, answers } });
       genFn({ data: { eventId: id } }).catch((e) => console.warn("Generación falló:", e));
-      return id;
+      return { id, cleanName, cleanLocation };
     },
-    onSuccess: (id) => {
+    onSuccess: ({ id, cleanName, cleanLocation }) => {
       toast.success("Solicitud creada — abriendo generador de banner");
       const map: Record<string, "rituales" | "academico" | "merchandising"> = {
         rituales: "rituales",
@@ -158,9 +163,9 @@ function DifusionPage() {
         to: "/banner-studio",
         search: {
           eventId: id,
-          title: form.eventName,
+          title: cleanName,
           date: dateLabel || undefined,
-          place: form.location || undefined,
+          place: cleanLocation || undefined,
           eventType,
           view: "creator",
         },
@@ -238,13 +243,15 @@ function DifusionPage() {
               </div>
 
               {/* Form card */}
-              <Card className="p-6 md:p-9 bg-white border border-neutral-200/80 shadow-sm rounded-xl animate-fade-in">
-                {step === 0 && <Step1 form={form} set={set} />}
-                {step === 1 && <Step2 form={form} set={set} />}
-                {step === 2 && <Step3 form={form} toggle={toggleChannel} />}
-                {step === 3 && <Step4 form={form} set={set} />}
+              <Card className="p-7 md:p-10 glass-card-strong rounded-2xl overflow-hidden">
+                <div key={step} className="step-slide-in">
+                  {step === 0 && <Step1 form={form} set={set} />}
+                  {step === 1 && <Step2 form={form} set={set} />}
+                  {step === 2 && <Step3 form={form} toggle={toggleChannel} />}
+                  {step === 3 && <Step4 form={form} set={set} />}
+                </div>
 
-                <div className="mt-10 pt-6 border-t border-neutral-100 flex items-center justify-between">
+                <div className="mt-10 pt-6 border-t border-neutral-100/80 flex items-center justify-between">
                   <Button variant="ghost" onClick={back} disabled={step === 0 || submitting} className="text-neutral-600 hover:text-neutral-900">
                     <ArrowLeft className="size-4" /> Atrás
                   </Button>
@@ -252,7 +259,7 @@ function DifusionPage() {
                     <Button
                       onClick={next}
                       disabled={!stepValid}
-                      className="bg-[#006547] hover:bg-[#004d34] text-white"
+                      className="bg-[#006547] hover:bg-[#004d34] text-white transition-transform hover:scale-[1.02]"
                     >
                       Siguiente <ArrowRight className="size-4" />
                     </Button>
@@ -260,7 +267,7 @@ function DifusionPage() {
                     <Button
                       onClick={submit}
                       disabled={!stepValid || submitting}
-                      className="bg-[#006547] hover:bg-[#004d34] text-white"
+                      className="bg-[#006547] hover:bg-[#004d34] text-white transition-transform hover:scale-[1.02]"
                     >
                       {submitting ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
                       {submitting ? "Generando…" : "Generar Difusión"}
@@ -650,17 +657,21 @@ function Step4({ form, set }: { form: FormState; set: <K extends keyof FormState
 
 function LoadingOverlay() {
   return (
-    <div className="fixed inset-0 z-50 grid place-content-center bg-white/80 backdrop-blur-md animate-fade-in">
-      <Card className="px-10 py-12 max-w-md text-center bg-white border border-[#006547]/20 shadow-2xl rounded-xl">
+    <div className="fixed inset-0 z-50 grid place-content-center bg-white/70 backdrop-blur-md animate-fade-in">
+      <Card className="px-10 py-12 max-w-md text-center glass-card-strong rounded-2xl">
         <div className="relative size-16 mx-auto mb-6">
           <div className="absolute inset-0 rounded-full border-2 border-[#006547]/15" />
           <div className="absolute inset-0 rounded-full border-2 border-[#006547] border-t-transparent animate-spin" />
           <Sparkles className="absolute inset-0 m-auto size-6 text-[#006547]" />
         </div>
         <h3 className="font-serif text-2xl mb-2 text-neutral-900">Procesando…</h3>
-        <p className="text-sm text-neutral-600 leading-relaxed">
+        <p className="text-sm text-neutral-600 leading-relaxed mb-4">
           El Agente de IA está maquetando tus piezas según el manual de marca…
         </p>
+        <div className="h-[2px] w-full rounded-full overflow-hidden bg-emerald-100/70 mt-2">
+          <div className="sync-line h-full w-full" />
+        </div>
+        <p className="text-[11px] text-neutral-500 mt-3">Sincronizando con los activos del Manual de Marca</p>
       </Card>
     </div>
   );
