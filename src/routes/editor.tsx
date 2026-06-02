@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { generateBannerImage, type ImageModel } from "@/lib/ai.functions";
+import { uploadBannerToDrive, getGoogleConnectionStatus } from "@/lib/google-drive.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,10 +14,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { Sparkles, Download, LogOut, Loader2 } from "lucide-react";
+import { Sparkles, Download, LogOut, Loader2, HardDrive } from "lucide-react";
 
 export const Route = createFileRoute("/editor")({ component: Editor });
 
@@ -41,6 +42,11 @@ function Editor() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const genFn = useServerFn(generateBannerImage);
+  const uploadDrive = useServerFn(uploadBannerToDrive);
+  const getDrive = useServerFn(getGoogleConnectionStatus);
+  const { data: drive } = useQuery({
+    queryKey: ["google-conn", user?.id], enabled: !!user, queryFn: () => getDrive(),
+  });
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: "/login" });
@@ -82,43 +88,42 @@ function Editor() {
     } finally { setGenerating(false); }
   }
 
+  async function renderToDataUrl(fmt: Format): Promise<string> {
+    const { w, h } = FORMATS[fmt];
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d")!;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    await new Promise<void>((res, rej) => {
+      img.onload = () => res();
+      img.onerror = () => rej(new Error("Image load failed"));
+      img.src = imageUrl!;
+    });
+    const ratio = Math.max(w / img.width, h / img.height);
+    const iw = img.width * ratio, ih = img.height * ratio;
+    ctx.drawImage(img, (w - iw) / 2, (h - ih) / 2, iw, ih);
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.fillRect(0, 0, w, h);
+    const padX = w * 0.07;
+    const headlineSize = Math.round(w * (fmt === "horizontal" ? 0.075 : 0.095));
+    const bodySize = Math.round(w * 0.028);
+    ctx.fillStyle = primary;
+    ctx.font = `${headlineSize}px "${font}"`;
+    ctx.textBaseline = "top";
+    wrapText(ctx, headline, padX, h * 0.55, w - padX * 2, headlineSize * 1.05);
+    ctx.font = `${bodySize}px "${font}"`;
+    wrapText(ctx, body, padX, h * 0.75, w - padX * 2, bodySize * 1.4);
+    ctx.fillStyle = accent;
+    ctx.fillRect(padX, h * 0.52, w * 0.08, 6);
+    return canvas.toDataURL("image/png");
+  }
+
   async function handleExport(fmt: Format) {
     if (!imageUrl) return toast.error("Generate a background first.");
     setExporting(true);
     try {
-      const { w, h } = FORMATS[fmt];
-      const canvas = document.createElement("canvas");
-      canvas.width = w; canvas.height = h;
-      const ctx = canvas.getContext("2d")!;
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      await new Promise<void>((res, rej) => {
-        img.onload = () => res();
-        img.onerror = () => rej(new Error("Image load failed"));
-        img.src = imageUrl;
-      });
-      // cover
-      const ratio = Math.max(w / img.width, h / img.height);
-      const iw = img.width * ratio, ih = img.height * ratio;
-      ctx.drawImage(img, (w - iw) / 2, (h - ih) / 2, iw, ih);
-      // dim
-      ctx.fillStyle = "rgba(0,0,0,0.25)";
-      ctx.fillRect(0, 0, w, h);
-      // text
-      const padX = w * 0.07;
-      const headlineSize = Math.round(w * (fmt === "horizontal" ? 0.075 : 0.095));
-      const bodySize = Math.round(w * 0.028);
-      ctx.fillStyle = primary;
-      ctx.font = `${headlineSize}px "${font}"`;
-      ctx.textBaseline = "top";
-      wrapText(ctx, headline, padX, h * 0.55, w - padX * 2, headlineSize * 1.05);
-      ctx.font = `${bodySize}px "${font}"`;
-      wrapText(ctx, body, padX, h * 0.75, w - padX * 2, bodySize * 1.4);
-      // accent bar
-      ctx.fillStyle = accent;
-      ctx.fillRect(padX, h * 0.52, w * 0.08, 6);
-
-      const url = canvas.toDataURL("image/png");
+      const url = await renderToDataUrl(fmt);
       const a = document.createElement("a");
       a.href = url;
       a.download = `banner-${fmt}-${Date.now()}.png`;
@@ -126,6 +131,28 @@ function Editor() {
       toast.success("Downloaded");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Export failed");
+    } finally { setExporting(false); }
+  }
+
+  async function handleUploadDrive(fmt: Format) {
+    if (!imageUrl) return toast.error("Generate a background first.");
+    if (!drive?.connected) {
+      toast.error("Conecta Google Drive desde el Dashboard primero.");
+      return;
+    }
+    setExporting(true);
+    const tId = toast.loading("Subiendo a Google Drive…");
+    try {
+      const dataUrl = await renderToDataUrl(fmt);
+      const base64 = dataUrl.split(",")[1];
+      const filename = `banner-${fmt}-${Date.now()}.png`;
+      const res = await uploadDrive({ data: { filename, imageBase64: base64 } });
+      toast.success("Subido a Google Drive", {
+        id: tId,
+        action: { label: "Abrir", onClick: () => window.open(res.webViewLink, "_blank") },
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed", { id: tId });
     } finally { setExporting(false); }
   }
 
@@ -240,10 +267,24 @@ function Editor() {
                     <Download className="size-4" /> Export
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">Descargar PNG</DropdownMenuLabel>
                   {(Object.keys(FORMATS) as Format[]).map((f) => (
-                    <DropdownMenuItem key={f} onClick={() => handleExport(f)}>
-                      {FORMATS[f].label}
+                    <DropdownMenuItem key={`dl-${f}`} onClick={() => handleExport(f)}>
+                      <Download className="size-4" /> {FORMATS[f].label}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                    Google Drive {drive?.connected ? "" : "(no conectado)"}
+                  </DropdownMenuLabel>
+                  {(Object.keys(FORMATS) as Format[]).map((f) => (
+                    <DropdownMenuItem
+                      key={`gd-${f}`}
+                      disabled={!drive?.connected}
+                      onClick={() => handleUploadDrive(f)}
+                    >
+                      <HardDrive className="size-4" /> {FORMATS[f].label}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
