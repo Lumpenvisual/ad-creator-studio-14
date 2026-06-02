@@ -13,6 +13,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as EventsRouteImport } from './routes/events'
 import { Route as EditorRouteImport } from './routes/editor'
+import { Route as DifusionRouteImport } from './routes/difusion'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as BrandRouteImport } from './routes/brand'
 import { Route as IndexRouteImport } from './routes/index'
@@ -40,6 +41,11 @@ const EventsRoute = EventsRouteImport.update({
 const EditorRoute = EditorRouteImport.update({
   id: '/editor',
   path: '/editor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DifusionRoute = DifusionRouteImport.update({
+  id: '/difusion',
+  path: '/difusion',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/brand': typeof BrandRouteWithChildren
   '/dashboard': typeof DashboardRoute
+  '/difusion': typeof DifusionRoute
   '/editor': typeof EditorRoute
   '/events': typeof EventsRouteWithChildren
   '/login': typeof LoginRoute
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/brand': typeof BrandRouteWithChildren
   '/dashboard': typeof DashboardRoute
+  '/difusion': typeof DifusionRoute
   '/editor': typeof EditorRoute
   '/events': typeof EventsRouteWithChildren
   '/login': typeof LoginRoute
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/brand': typeof BrandRouteWithChildren
   '/dashboard': typeof DashboardRoute
+  '/difusion': typeof DifusionRoute
   '/editor': typeof EditorRoute
   '/events': typeof EventsRouteWithChildren
   '/login': typeof LoginRoute
@@ -132,6 +141,7 @@ export interface FileRouteTypes {
     | '/'
     | '/brand'
     | '/dashboard'
+    | '/difusion'
     | '/editor'
     | '/events'
     | '/login'
@@ -146,6 +156,7 @@ export interface FileRouteTypes {
     | '/'
     | '/brand'
     | '/dashboard'
+    | '/difusion'
     | '/editor'
     | '/events'
     | '/login'
@@ -160,6 +171,7 @@ export interface FileRouteTypes {
     | '/'
     | '/brand'
     | '/dashboard'
+    | '/difusion'
     | '/editor'
     | '/events'
     | '/login'
@@ -175,6 +187,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BrandRoute: typeof BrandRouteWithChildren
   DashboardRoute: typeof DashboardRoute
+  DifusionRoute: typeof DifusionRoute
   EditorRoute: typeof EditorRoute
   EventsRoute: typeof EventsRouteWithChildren
   LoginRoute: typeof LoginRoute
@@ -211,6 +224,13 @@ declare module '@tanstack/react-router' {
       path: '/editor'
       fullPath: '/editor'
       preLoaderRoute: typeof EditorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/difusion': {
+      id: '/difusion'
+      path: '/difusion'
+      fullPath: '/difusion'
+      preLoaderRoute: typeof DifusionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -299,6 +319,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BrandRoute: BrandRouteWithChildren,
   DashboardRoute: DashboardRoute,
+  DifusionRoute: DifusionRoute,
   EditorRoute: EditorRoute,
   EventsRoute: EventsRouteWithChildren,
   LoginRoute: LoginRoute,
@@ -309,13 +330,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
