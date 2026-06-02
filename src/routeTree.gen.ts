@@ -18,6 +18,7 @@ import { Route as BrandRouteImport } from './routes/brand'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EventsNewRouteImport } from './routes/events.new'
 import { Route as EventsIdRouteImport } from './routes/events.$id'
+import { Route as BrandExtractRouteImport } from './routes/brand.extract'
 import { Route as AdminQuestionnaireRouteImport } from './routes/admin.questionnaire'
 import { Route as ApiGoogleCallbackRouteImport } from './routes/api/google/callback'
 
@@ -66,6 +67,11 @@ const EventsIdRoute = EventsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => EventsRoute,
 } as any)
+const BrandExtractRoute = BrandExtractRouteImport.update({
+  id: '/extract',
+  path: '/extract',
+  getParentRoute: () => BrandRoute,
+} as any)
 const AdminQuestionnaireRoute = AdminQuestionnaireRouteImport.update({
   id: '/admin/questionnaire',
   path: '/admin/questionnaire',
@@ -79,26 +85,28 @@ const ApiGoogleCallbackRoute = ApiGoogleCallbackRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/brand': typeof BrandRoute
+  '/brand': typeof BrandRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/editor': typeof EditorRoute
   '/events': typeof EventsRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/admin/questionnaire': typeof AdminQuestionnaireRoute
+  '/brand/extract': typeof BrandExtractRoute
   '/events/$id': typeof EventsIdRoute
   '/events/new': typeof EventsNewRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/brand': typeof BrandRoute
+  '/brand': typeof BrandRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/editor': typeof EditorRoute
   '/events': typeof EventsRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/admin/questionnaire': typeof AdminQuestionnaireRoute
+  '/brand/extract': typeof BrandExtractRoute
   '/events/$id': typeof EventsIdRoute
   '/events/new': typeof EventsNewRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
@@ -106,13 +114,14 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/brand': typeof BrandRoute
+  '/brand': typeof BrandRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/editor': typeof EditorRoute
   '/events': typeof EventsRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/admin/questionnaire': typeof AdminQuestionnaireRoute
+  '/brand/extract': typeof BrandExtractRoute
   '/events/$id': typeof EventsIdRoute
   '/events/new': typeof EventsNewRoute
   '/api/google/callback': typeof ApiGoogleCallbackRoute
@@ -128,6 +137,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/admin/questionnaire'
+    | '/brand/extract'
     | '/events/$id'
     | '/events/new'
     | '/api/google/callback'
@@ -141,6 +151,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/admin/questionnaire'
+    | '/brand/extract'
     | '/events/$id'
     | '/events/new'
     | '/api/google/callback'
@@ -154,6 +165,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/admin/questionnaire'
+    | '/brand/extract'
     | '/events/$id'
     | '/events/new'
     | '/api/google/callback'
@@ -161,7 +173,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  BrandRoute: typeof BrandRoute
+  BrandRoute: typeof BrandRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   EditorRoute: typeof EditorRoute
   EventsRoute: typeof EventsRouteWithChildren
@@ -236,6 +248,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EventsIdRouteImport
       parentRoute: typeof EventsRoute
     }
+    '/brand/extract': {
+      id: '/brand/extract'
+      path: '/extract'
+      fullPath: '/brand/extract'
+      preLoaderRoute: typeof BrandExtractRouteImport
+      parentRoute: typeof BrandRoute
+    }
     '/admin/questionnaire': {
       id: '/admin/questionnaire'
       path: '/admin/questionnaire'
@@ -253,6 +272,16 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface BrandRouteChildren {
+  BrandExtractRoute: typeof BrandExtractRoute
+}
+
+const BrandRouteChildren: BrandRouteChildren = {
+  BrandExtractRoute: BrandExtractRoute,
+}
+
+const BrandRouteWithChildren = BrandRoute._addFileChildren(BrandRouteChildren)
+
 interface EventsRouteChildren {
   EventsIdRoute: typeof EventsIdRoute
   EventsNewRoute: typeof EventsNewRoute
@@ -268,7 +297,7 @@ const EventsRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  BrandRoute: BrandRoute,
+  BrandRoute: BrandRouteWithChildren,
   DashboardRoute: DashboardRoute,
   EditorRoute: EditorRoute,
   EventsRoute: EventsRouteWithChildren,
