@@ -9,7 +9,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { LogOut, Plus, MoreHorizontal, Pencil, Copy, Trash2, Sparkles, HardDrive, Check, ShieldCheck } from "lucide-react";
+import { LogOut, Plus, MoreHorizontal, Pencil, Copy, Trash2, Sparkles, HardDrive, Check, ShieldCheck, Calendar } from "lucide-react";
 import {
   getGoogleAuthUrl,
   getGoogleConnectionStatus,
@@ -198,9 +198,12 @@ function Dashboard() {
               {banners?.length ?? 0} {banners?.length === 1 ? t("dash.countOne") : t("dash.countMany")}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button variant="outline" asChild>
               <Link to="/brand"><ShieldCheck className="size-4" /> {lang === "es" ? "Marca" : "Brand"}</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to="/events"><Calendar className="size-4" /> {lang === "es" ? "Eventos" : "Events"}</Link>
             </Button>
             <Button onClick={() => navigate({ to: "/editor" })}>
               <Plus className="size-4" /> {t("dash.new")}
