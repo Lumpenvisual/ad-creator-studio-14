@@ -239,9 +239,10 @@ function BannerCard({
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
+  const { t, lang } = useI18n();
   const fmt = banner.format ?? "square";
   return (
-    <div className="group bg-card ring-1 ring-border rounded-xl overflow-hidden hover:shadow-xl hover:shadow-black/5 transition-shadow">
+    <div className="group bg-card ring-1 ring-border rounded-xl overflow-hidden hover:shadow-xl hover:shadow-black/5 transition-all hover:-translate-y-0.5">
       <button
         onClick={onOpen}
         className="block w-full aspect-square relative bg-surface-muted overflow-hidden"
@@ -254,7 +255,7 @@ function BannerCard({
           />
         ) : (
           <div className="absolute inset-0 grid place-items-center text-xs uppercase tracking-widest text-muted-foreground">
-            Sin imagen
+            {t("dash.card.noImage")}
           </div>
         )}
         {banner.headline && (
@@ -273,7 +274,7 @@ function BannerCard({
         <div className="min-w-0">
           <p className="text-sm font-medium truncate">{banner.name}</p>
           <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-            {FORMAT_LABEL[fmt] ?? fmt} · {formatDate(banner.updated_at)}
+            {FORMAT_LABEL[fmt] ?? fmt} · {formatDate(banner.updated_at, lang)}
           </p>
         </div>
         <DropdownMenu>
@@ -284,13 +285,13 @@ function BannerCard({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={onOpen}>
-              <Pencil className="size-4" /> Abrir en editor
+              <Pencil className="size-4" /> {t("dash.card.open")}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onDuplicate}>
-              <Copy className="size-4" /> Duplicar
+              <Copy className="size-4" /> {t("dash.card.dup")}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
-              <Trash2 className="size-4" /> Eliminar
+              <Trash2 className="size-4" /> {t("dash.card.del")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -300,23 +301,24 @@ function BannerCard({
 }
 
 function EmptyState({ onCreate }: { onCreate: () => void }) {
+  const { t } = useI18n();
   return (
     <div className="border border-dashed border-border rounded-2xl py-20 px-6 text-center bg-surface-muted/40">
       <div className="mx-auto size-12 rounded-full bg-accent/10 grid place-items-center text-accent mb-5">
         <Sparkles className="size-5" />
       </div>
-      <h2 className="font-serif text-2xl">Aún no tienes banners</h2>
+      <h2 className="font-serif text-2xl">{t("dash.empty.title")}</h2>
       <p className="mt-2 text-sm text-muted-foreground max-w-sm mx-auto">
-        Genera tu primer banner con IA y aparecerá aquí una vez lo guardes desde el editor.
+        {t("dash.empty.desc")}
       </p>
       <Button onClick={onCreate} className="mt-6">
-        <Plus className="size-4" /> Crear primer banner
+        <Plus className="size-4" /> {t("dash.empty.cta")}
       </Button>
     </div>
   );
 }
 
-function formatDate(iso: string) {
+function formatDate(iso: string, lang: "es" | "en" = "es") {
   const d = new Date(iso);
   return d.toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" });
 }
