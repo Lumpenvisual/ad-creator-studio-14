@@ -84,10 +84,12 @@ async function refreshAccessToken(refreshToken: string) {
 export const uploadBannerToDrive = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
-    z.object({
-      filename: z.string().min(1).max(200),
-      imageBase64: z.string().min(10), // raw base64 PNG (no data: prefix)
-    }).parse(input),
+    z
+      .object({
+        filename: z.string().min(1).max(200),
+        imageBase64: z.string().min(10), // raw base64 PNG (no data: prefix)
+      })
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
     const { data: conn, error } = await context.supabase
@@ -103,10 +105,13 @@ export const uploadBannerToDrive = createServerFn({ method: "POST" })
       if (!conn.refresh_token) throw new Error("Sesión de Google expirada, reconecta tu cuenta");
       const refreshed = await refreshAccessToken(conn.refresh_token);
       accessToken = refreshed.access_token;
-      await context.supabase.from("google_connections").update({
-        access_token: accessToken,
-        expiry_at: new Date(Date.now() + refreshed.expires_in * 1000).toISOString(),
-      }).eq("user_id", context.userId);
+      await context.supabase
+        .from("google_connections")
+        .update({
+          access_token: accessToken,
+          expiry_at: new Date(Date.now() + refreshed.expires_in * 1000).toISOString(),
+        })
+        .eq("user_id", context.userId);
     }
 
     const boundary = `vellum_${crypto.randomUUID()}`;
@@ -134,5 +139,9 @@ export const uploadBannerToDrive = createServerFn({ method: "POST" })
     );
     if (!up.ok) throw new Error(`Drive upload failed: ${up.status} ${await up.text()}`);
     const file = (await up.json()) as { id: string; name: string; webViewLink?: string };
-    return { id: file.id, name: file.name, webViewLink: file.webViewLink ?? `https://drive.google.com/file/d/${file.id}/view` };
+    return {
+      id: file.id,
+      name: file.name,
+      webViewLink: file.webViewLink ?? `https://drive.google.com/file/d/${file.id}/view`,
+    };
   });
