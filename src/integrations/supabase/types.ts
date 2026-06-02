@@ -65,6 +65,78 @@ export type Database = {
         }
         Relationships: []
       }
+      brand_profiles: {
+        Row: {
+          accent_color: string | null
+          body_font: string | null
+          brand_name: string
+          completed: boolean
+          created_at: string
+          forbidden_phrases: string[]
+          heading_font: string | null
+          id: string
+          industry: string | null
+          legal_text: string | null
+          mandatory_elements: string[]
+          personality: string | null
+          primary_color: string | null
+          restrictions: string[]
+          secondary_color: string | null
+          slogan: string | null
+          target_audience: string | null
+          updated_at: string
+          user_id: string
+          voice_tone: string | null
+          writing_style: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          body_font?: string | null
+          brand_name?: string
+          completed?: boolean
+          created_at?: string
+          forbidden_phrases?: string[]
+          heading_font?: string | null
+          id?: string
+          industry?: string | null
+          legal_text?: string | null
+          mandatory_elements?: string[]
+          personality?: string | null
+          primary_color?: string | null
+          restrictions?: string[]
+          secondary_color?: string | null
+          slogan?: string | null
+          target_audience?: string | null
+          updated_at?: string
+          user_id: string
+          voice_tone?: string | null
+          writing_style?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          body_font?: string | null
+          brand_name?: string
+          completed?: boolean
+          created_at?: string
+          forbidden_phrases?: string[]
+          heading_font?: string | null
+          id?: string
+          industry?: string | null
+          legal_text?: string | null
+          mandatory_elements?: string[]
+          personality?: string | null
+          primary_color?: string | null
+          restrictions?: string[]
+          secondary_color?: string | null
+          slogan?: string | null
+          target_audience?: string | null
+          updated_at?: string
+          user_id?: string
+          voice_tone?: string | null
+          writing_style?: string | null
+        }
+        Relationships: []
+      }
       google_connections: {
         Row: {
           access_token: string
