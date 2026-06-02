@@ -602,7 +602,7 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
       <div className="grid lg:grid-cols-[420px_1fr] gap-6 items-start">
         {/* Controls */}
         <div className="space-y-4">
-          <Card className="p-5 border-neutral-200 space-y-4">
+          <Card className="p-6 border-neutral-200/70 glass-card space-y-5">
             <div>
               <Label className="text-[10px] uppercase tracking-widest text-neutral-500">Canal / Formato</Label>
               <div className="grid grid-cols-3 gap-2 mt-2">
@@ -611,7 +611,7 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
                     key={f.id}
                     onClick={() => setFormat(f.id)}
                     className={cn(
-                      "rounded-lg border p-2 text-left transition",
+                      "rounded-lg border p-2 text-left transition-all duration-200 hover:-translate-y-0.5",
                       format === f.id ? "border-[color:var(--g)] ring-2 ring-[color:var(--g)]/15 bg-emerald-50/40" : "border-neutral-200 hover:border-neutral-300 bg-white",
                     )}
                     style={{ ["--g" as any]: GREEN }}
@@ -628,14 +628,26 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
             </div>
 
             <div>
-              <Label className="text-[10px] uppercase tracking-widest text-neutral-500">Tipo de Evento</Label>
+              <div className="flex items-center gap-1.5">
+                <Label className="text-[10px] uppercase tracking-widest text-neutral-500">Tipo de Evento</Label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="text-neutral-400 hover:text-neutral-700"><Info className="size-3" /></button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-xs">
+                    {evt.id === "rituales" && "Uso obligatorio del logosímbolo vertical según la Guía Temática Institucional."}
+                    {evt.id === "academico" && "Logosímbolo horizontal para actividades académicas y de docencia."}
+                    {evt.id === "merchandising" && "Logotipo ® obligatorio en piezas promocionales y merchandising."}
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <Select value={eventType} onValueChange={(v) => setEventType(v as EventType)}>
                 <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {EVENT_TYPES.map((e) => <SelectItem key={e.id} value={e.id}>{e.label}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <div className="mt-2 flex items-start gap-2 p-2.5 rounded-md bg-emerald-50/60 border border-emerald-100">
+              <div className="mt-2 flex items-start gap-2 p-2.5 rounded-md bg-emerald-50/60 border border-emerald-100 animate-fade-in">
                 <Info className="size-3.5 mt-0.5 shrink-0" style={{ color: GREEN }} />
                 <p className="text-[11px] text-emerald-900 leading-snug">
                   Regla activa: se usa <strong>{LOGO_SLOTS.find((s) => s.kind === evt.required)?.label}</strong>
