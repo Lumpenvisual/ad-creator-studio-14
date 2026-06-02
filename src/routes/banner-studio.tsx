@@ -878,25 +878,35 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
             </div>
           </div>
 
+          {/* Overflow guardrail under canvas */}
+          {overLimit && (
+            <div className="flex items-start gap-2 p-3 rounded-md bg-amber-50 border border-amber-200 text-[12px] text-amber-900 animate-fade-in">
+              <Info className="size-4 shrink-0 mt-0.5" />
+              El texto es muy largo. Redúzcalo para mantener las márgenes de seguridad institucional.
+            </div>
+          )}
+
           {/* Compliance bar */}
-          <div className="flex items-center justify-between gap-3 p-3 rounded-lg border border-emerald-200 bg-emerald-50/60">
-            <div className="flex items-center gap-2 text-[12px] font-medium" style={{ color: GREEN_DARK }}>
+          <div className="flex items-center justify-between gap-3 p-3 rounded-lg border border-emerald-200 bg-emerald-50/70 backdrop-blur">
+            <div className="flex items-center gap-2 text-[12px] font-medium flex-wrap" style={{ color: GREEN_DARK }}>
               <ShieldCheck className="size-4" />
               Gobernanza de Marca: Cumpliendo con el Manual de Identidad
-              <Badge className="ml-2 border-0 text-[10px] h-5" style={{ background: GREEN, color: "white" }}>OK</Badge>
+              <Badge className="ml-1 border-0 text-[10px] h-5" style={{ background: GREEN, color: "white" }}>OK</Badge>
+              <Badge variant="outline" className="border-emerald-300 text-emerald-800 text-[10px] h-5">Contraste validado</Badge>
             </div>
-            <Button onClick={handleDownload} disabled={downloading} style={{ background: GREEN }} className="text-white hover:opacity-90">
+            <Button onClick={handleDownload} disabled={downloading} style={{ background: GREEN }} className="text-white hover:opacity-90 transition-transform hover:scale-[1.02]">
               {downloading ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
               Descargar Banner Adaptado
             </Button>
           </div>
 
           {!logo && (
-            <div className="flex items-start gap-2 p-3 rounded-md bg-amber-50 border border-amber-200 text-[12px] text-amber-900">
+            <div className="flex items-start gap-2 p-3 rounded-md bg-amber-50 border border-amber-200 text-[12px] text-amber-900 animate-fade-in">
               <Info className="size-4 shrink-0 mt-0.5" />
-              El logo requerido para este tipo de evento aún no se ha cargado en la vista Admin.
+              El logo requerido para este tipo de evento aún no se ha cargado en la vista Admin. Se mostrará un marcador con guías de marca hasta que un administrador lo añada.
             </div>
           )}
+
         </div>
       </div>
     </div>
