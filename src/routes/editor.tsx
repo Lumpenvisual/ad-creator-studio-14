@@ -18,14 +18,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { Sparkles, Download, LogOut, Loader2, HardDrive } from "lucide-react";
+import { useI18n, LanguageSwitcher } from "@/lib/i18n";
 
 export const Route = createFileRoute("/editor")({ component: Editor });
 
 type Format = "square" | "vertical" | "horizontal";
-const FORMATS: Record<Format, { w: number; h: number; label: string }> = {
-  square: { w: 1080, h: 1080, label: "Square 1080×1080" },
-  vertical: { w: 1080, h: 1920, label: "Story 1080×1920" },
-  horizontal: { w: 1920, h: 1080, label: "Landscape 1920×1080" },
+const FORMAT_DIM: Record<Format, { w: number; h: number }> = {
+  square: { w: 1080, h: 1080 },
+  vertical: { w: 1080, h: 1920 },
+  horizontal: { w: 1920, h: 1080 },
 };
 
 const FONTS = ["Instrument Serif", "Schibsted Grotesk", "Inter", "Playfair Display", "Space Grotesk"];
