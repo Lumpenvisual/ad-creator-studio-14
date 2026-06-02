@@ -127,8 +127,13 @@ function BannerStudio() {
         </header>
 
         <main className="max-w-7xl mx-auto px-6 py-8">
-          {view === "admin" && (canManage ? <AdminView /> : <Restricted />)}
-          {view === "creator" && <CreatorView prefill={search} />}
+          {/* Both views are kept mounted to preserve state across tab switches */}
+          <div className={cn(view === "admin" ? "block" : "hidden")}>
+            {canManage ? <AdminView /> : <Restricted />}
+          </div>
+          <div className={cn(view === "creator" ? "block" : "hidden")}>
+            <CreatorView prefill={search} />
+          </div>
         </main>
       </div>
     </TooltipProvider>
