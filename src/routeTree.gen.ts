@@ -16,6 +16,7 @@ import { Route as EditorRouteImport } from './routes/editor'
 import { Route as DifusionRouteImport } from './routes/difusion'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as BrandRouteImport } from './routes/brand'
+import { Route as BannerStudioRouteImport } from './routes/banner-studio'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EventsNewRouteImport } from './routes/events.new'
 import { Route as EventsIdRouteImport } from './routes/events.$id'
@@ -59,6 +60,11 @@ const BrandRoute = BrandRouteImport.update({
   path: '/brand',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BannerStudioRoute = BannerStudioRouteImport.update({
+  id: '/banner-studio',
+  path: '/banner-studio',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -97,6 +103,7 @@ const ApiGoogleCallbackRoute = ApiGoogleCallbackRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/banner-studio': typeof BannerStudioRoute
   '/brand': typeof BrandRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/difusion': typeof DifusionRoute
@@ -113,6 +120,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/banner-studio': typeof BannerStudioRoute
   '/brand': typeof BrandRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/difusion': typeof DifusionRoute
@@ -130,6 +138,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/banner-studio': typeof BannerStudioRoute
   '/brand': typeof BrandRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/difusion': typeof DifusionRoute
@@ -148,6 +157,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/banner-studio'
     | '/brand'
     | '/dashboard'
     | '/difusion'
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/banner-studio'
     | '/brand'
     | '/dashboard'
     | '/difusion'
@@ -180,6 +191,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/banner-studio'
     | '/brand'
     | '/dashboard'
     | '/difusion'
@@ -197,6 +209,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BannerStudioRoute: typeof BannerStudioRoute
   BrandRoute: typeof BrandRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   DifusionRoute: typeof DifusionRoute
@@ -258,6 +271,13 @@ declare module '@tanstack/react-router' {
       path: '/brand'
       fullPath: '/brand'
       preLoaderRoute: typeof BrandRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/banner-studio': {
+      id: '/banner-studio'
+      path: '/banner-studio'
+      fullPath: '/banner-studio'
+      preLoaderRoute: typeof BannerStudioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -337,6 +357,7 @@ const EventsRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BannerStudioRoute: BannerStudioRoute,
   BrandRoute: BrandRouteWithChildren,
   DashboardRoute: DashboardRoute,
   DifusionRoute: DifusionRoute,
