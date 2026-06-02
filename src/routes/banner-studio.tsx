@@ -681,11 +681,27 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
             </div>
           </Card>
 
-          <Card className="p-5 border-neutral-200 space-y-3">
+          <Card className="p-6 border-neutral-200/70 glass-card space-y-4">
             <p className="text-[10px] uppercase tracking-widest text-neutral-500">Contenido del banner</p>
             <div>
               <Label className="text-[11px]">Título del Evento</Label>
               <Input value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1" />
+              <div className="mt-1.5 flex items-center justify-between">
+                <span className={cn("text-[10px]", overLimit ? "text-amber-700 font-medium" : "text-neutral-400")}>
+                  {titleClean.length} / {TITLE_SAFE_MAX} caracteres seguros
+                </span>
+                {scaleFactor < 1 && !overLimit && (
+                  <span className="text-[10px] text-neutral-500">Escalado automático ×{scaleFactor.toFixed(2)}</span>
+                )}
+              </div>
+              {overLimit && (
+                <div className="mt-2 flex items-start gap-2 p-2 rounded-md bg-amber-50 border border-amber-200 animate-fade-in">
+                  <Info className="size-3.5 mt-0.5 shrink-0 text-amber-700" />
+                  <p className="text-[11px] text-amber-900 leading-snug">
+                    El texto es muy largo. Redúzcalo para mantener las márgenes de seguridad institucional.
+                  </p>
+                </div>
+              )}
             </div>
             <div>
               <Label className="text-[11px]">Fecha / Hora</Label>
