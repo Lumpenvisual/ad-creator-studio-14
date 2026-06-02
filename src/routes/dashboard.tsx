@@ -156,6 +156,28 @@ function Dashboard() {
                 {profile?.credits ?? "…"} créditos
               </span>
             </div>
+            {drive?.connected ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (confirm(`¿Desconectar Google Drive${drive.email ? ` (${drive.email})` : ""}?`)) {
+                    disconnectMut.mutate();
+                  }
+                }}
+              >
+                <Check className="size-4" /> Drive conectado
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => connectMut.mutate()}
+                disabled={connectMut.isPending}
+              >
+                <HardDrive className="size-4" /> Conectar Drive
+              </Button>
+            )}
             <Button variant="ghost" size="sm" onClick={signOut}>
               <LogOut className="size-4" /> Salir
             </Button>
