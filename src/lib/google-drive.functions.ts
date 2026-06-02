@@ -8,7 +8,23 @@ const SCOPES = "https://www.googleapis.com/auth/drive.file";
 
 function getOrigin() {
   const req = getRequest();
+  const origin = req.headers.get("origin");
+  if (origin && !origin.includes("localhost")) return origin;
+
+  const forwardedHost = req.headers.get("x-forwarded-host");
+  const forwardedProto = req.headers.get("x-forwarded-proto") ?? "https";
+  if (forwardedHost) return `${forwardedProto}://${forwardedHost}`;
+
   const url = new URL(req.url);
+  const host = req.headers.get("host") ?? url.host;
+  if (host && !host.includes("localhost")) return `https://${host}`;
+
+  const referer = req.headers.get("referer");
+  if (referer) {
+    const refererUrl = new URL(referer);
+    if (!refererUrl.host.includes("localhost")) return refererUrl.origin;
+  }
+
   return `${url.protocol}//${url.host}`;
 }
 
