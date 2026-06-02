@@ -267,10 +267,24 @@ function Editor() {
                     <Download className="size-4" /> Export
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">Descargar PNG</DropdownMenuLabel>
                   {(Object.keys(FORMATS) as Format[]).map((f) => (
-                    <DropdownMenuItem key={f} onClick={() => handleExport(f)}>
-                      {FORMATS[f].label}
+                    <DropdownMenuItem key={`dl-${f}`} onClick={() => handleExport(f)}>
+                      <Download className="size-4" /> {FORMATS[f].label}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                    Google Drive {drive?.connected ? "" : "(no conectado)"}
+                  </DropdownMenuLabel>
+                  {(Object.keys(FORMATS) as Format[]).map((f) => (
+                    <DropdownMenuItem
+                      key={`gd-${f}`}
+                      disabled={!drive?.connected}
+                      onClick={() => handleUploadDrive(f)}
+                    >
+                      <HardDrive className="size-4" /> {FORMATS[f].label}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
