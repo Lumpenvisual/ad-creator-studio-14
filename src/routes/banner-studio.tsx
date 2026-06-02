@@ -22,6 +22,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import { getMyRoles } from "@/lib/events.functions";
 import { listBrandAssets, upsertBrandAsset, deleteBrandAsset, listCategoryRules } from "@/lib/governance.functions";
+import { generateBannerImage, type ImageModel } from "@/lib/ai.functions";
+import { assistEventPrompt } from "@/lib/ai.functions";
+import { Textarea } from "@/components/ui/textarea";
 
 type BannerSearch = {
   eventId?: string;
