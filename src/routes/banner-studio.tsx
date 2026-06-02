@@ -23,8 +23,25 @@ import { cn } from "@/lib/utils";
 import { getMyRoles } from "@/lib/events.functions";
 import { listBrandAssets, upsertBrandAsset, deleteBrandAsset, listCategoryRules } from "@/lib/governance.functions";
 
+type BannerSearch = {
+  eventId?: string;
+  title?: string;
+  date?: string;
+  place?: string;
+  eventType?: "rituales" | "academico" | "merchandising";
+  view?: "admin" | "creator";
+};
+
 export const Route = createFileRoute("/banner-studio")({
   head: () => ({ meta: [{ title: "Banner Studio — Marca Institucional" }] }),
+  validateSearch: (s: Record<string, unknown>): BannerSearch => ({
+    eventId: typeof s.eventId === "string" ? s.eventId : undefined,
+    title: typeof s.title === "string" ? s.title : undefined,
+    date: typeof s.date === "string" ? s.date : undefined,
+    place: typeof s.place === "string" ? s.place : undefined,
+    eventType: s.eventType === "rituales" || s.eventType === "academico" || s.eventType === "merchandising" ? s.eventType : undefined,
+    view: s.view === "admin" || s.view === "creator" ? s.view : undefined,
+  }),
   component: BannerStudio,
 });
 
