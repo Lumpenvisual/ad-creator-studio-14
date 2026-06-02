@@ -64,11 +64,32 @@ export const generateBannerImage = createServerFn({ method: "POST" })
       throw new Error(`Image generation failed: ${text.slice(0, 200)}`);
     }
 
-    const json = (await res.json()) as { data?: Array<{ b64_json?: string; url?: string }> };
+    type ImgResp = {
+      data?: Array<{ b64_json?: string; url?: string }>;
+      choices?: Array<{
+        message?: {
+          images?: Array<{ image_url?: { url?: string } }>;
+          content?: string;
+        };
+      }>;
+    };
+    const json = (await res.json()) as ImgResp;
     const first = json.data?.[0];
-    const b64 = first?.b64_json;
-    const url = first?.url;
-    if (!b64 && !url) throw new Error("No image returned");
+    let b64 = first?.b64_json;
+    let url = first?.url;
+    // Fallback: chat-completions-style image response (some Gemini paths)
+    if (!b64 && !url) {
+      const imgUrl = json.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      if (imgUrl?.startsWith("data:image")) {
+        b64 = imgUrl.split(",")[1];
+      } else if (imgUrl) {
+        url = imgUrl;
+      }
+    }
+    if (!b64 && !url) {
+      console.error("Image gen: unexpected response", JSON.stringify(json).slice(0, 500));
+      throw new Error("No image returned");
+    }
 
     // Deduct credit
     await supabase
