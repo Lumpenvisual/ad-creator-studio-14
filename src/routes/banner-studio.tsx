@@ -752,6 +752,21 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
                 fontFamily: "Georgia, serif",
               }}
             >
+              {/* AI Background */}
+              {bgUrl && (
+                <>
+                  <img src={bgUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background: palette.id === "white"
+                        ? "linear-gradient(to bottom, rgba(255,255,255,0) 40%, rgba(255,255,255,0.85) 100%)"
+                        : "linear-gradient(to bottom, rgba(0,0,0,0) 40%, rgba(0,0,0,0.55) 100%)",
+                    }}
+                  />
+                </>
+              )}
+
               {/* Logo */}
               <div
                 className={cn(
