@@ -323,8 +323,10 @@ function LogoSlot({ kind, label, hint, current, onChanged }: { kind: LogoKind; l
   useEffect(() => { localStorage.setItem(`bs_variants_${kind}`, JSON.stringify(variants)); }, [variants, kind]);
 
   const upload = async (file: File) => {
-    if (!file.type.startsWith("image/")) return toast.error("Solo imágenes");
-    if (file.size > 10 * 1024 * 1024) return toast.error("Máx 10 MB");
+    if (!file.type.startsWith("image/")) {
+      return toast.error("Formato no válido. Suba el logo en PNG o SVG.");
+    }
+    if (file.size > 10 * 1024 * 1024) return toast.error("El archivo supera los 10 MB.");
     setBusy(true);
     try {
       const ext = file.name.split(".").pop() || "png";
@@ -345,7 +347,7 @@ function LogoSlot({ kind, label, hint, current, onChanged }: { kind: LogoKind; l
   };
 
   return (
-    <Card className="p-4 border-neutral-200">
+    <Card className="p-4 border-neutral-200/70 glass-card">
       <div className="flex items-start justify-between mb-3">
         <div>
           <p className="text-sm font-semibold">{label}</p>
@@ -355,24 +357,24 @@ function LogoSlot({ kind, label, hint, current, onChanged }: { kind: LogoKind; l
       </div>
 
       <label
-        onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
-        onDragLeave={() => setDrag(false)}
+        onDragOver={(e) => { e.preventDefault(); if (!drag) setDrag(true); }}
+        onDragLeave={(e) => { e.preventDefault(); setDrag(false); }}
         onDrop={(e) => { e.preventDefault(); setDrag(false); const f = e.dataTransfer.files?.[0]; if (f) upload(f); }}
         className={cn(
-          "relative block rounded-lg border-2 border-dashed transition cursor-pointer aspect-[4/2] grid place-content-center bg-neutral-50",
-          drag ? "border-[color:var(--g)] bg-emerald-50/40" : "border-neutral-200 hover:border-neutral-300",
+          "relative block rounded-lg border-2 border-dashed transition-all duration-300 ease-out cursor-pointer aspect-[4/2] grid place-content-center bg-neutral-50/50",
+          drag ? "border-[color:var(--g)] bg-emerald-50/60 dropzone-active" : "border-neutral-200 hover:border-neutral-300",
         )}
         style={{ ["--g" as any]: GREEN }}
       >
         <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); }} />
         {busy ? (
-          <Loader2 className="size-5 animate-spin text-neutral-400" />
+          <Loader2 className="size-5 animate-spin" style={{ color: GREEN }} />
         ) : current?.url ? (
           <img src={current.url} alt={label} className="max-h-24 max-w-[80%] object-contain mx-auto" />
         ) : (
-          <div className="text-center text-neutral-400">
-            <UploadCloud className="size-5 mx-auto mb-1" />
-            <p className="text-[11px]">Subir PNG / SVG</p>
+          <div className="text-center text-neutral-400 transition-transform" style={{ transform: drag ? "scale(1.05)" : "scale(1)" }}>
+            <UploadCloud className={cn("size-5 mx-auto mb-1", drag && "text-emerald-700")} />
+            <p className={cn("text-[11px]", drag && "text-emerald-800 font-medium")}>{drag ? "Suelta la imagen" : "Subir PNG / SVG"}</p>
           </div>
         )}
       </label>
