@@ -85,7 +85,7 @@ function Dashboard() {
     mutationFn: async () => disconnect(),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["google-conn"] });
-      toast.success("Google Drive desconectado");
+      toast.success(t("dash.drive.disconnected"));
     },
   });
 
