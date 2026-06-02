@@ -103,7 +103,7 @@ function EventsPage() {
             </p>
           </div>
           <Button asChild>
-            <Link to="/events/new"><Plus className="size-4" /> Nuevo evento</Link>
+            <Link to="/difusion"><Plus className="size-4" /> Nueva solicitud</Link>
           </Button>
         </div>
 
