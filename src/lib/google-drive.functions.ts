@@ -1,8 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
-import { createHmac, timingSafeEqual } from "crypto";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { signState } from "./google-drive.server";
 
 const SCOPES = "https://www.googleapis.com/auth/drive.file";
 
@@ -10,33 +10,6 @@ function getOrigin() {
   const req = getRequest();
   const url = new URL(req.url);
   return `${url.protocol}//${url.host}`;
-}
-
-function signState(userId: string) {
-  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  const nonce = crypto.randomUUID();
-  const payload = `${userId}.${nonce}.${Date.now()}`;
-  const sig = createHmac("sha256", secret).update(payload).digest("hex");
-  return Buffer.from(`${payload}.${sig}`).toString("base64url");
-}
-
-export function verifyState(state: string): { userId: string } | null {
-  try {
-    const decoded = Buffer.from(state, "base64url").toString("utf8");
-    const parts = decoded.split(".");
-    if (parts.length !== 4) return null;
-    const [userId, nonce, ts, sig] = parts;
-    const expected = createHmac("sha256", process.env.SUPABASE_SERVICE_ROLE_KEY!)
-      .update(`${userId}.${nonce}.${ts}`).digest("hex");
-    const a = Buffer.from(sig);
-    const b = Buffer.from(expected);
-    if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
-    // 15 min validity
-    if (Date.now() - Number(ts) > 15 * 60 * 1000) return null;
-    return { userId };
-  } catch {
-    return null;
-  }
 }
 
 export const getGoogleAuthUrl = createServerFn({ method: "POST" })
