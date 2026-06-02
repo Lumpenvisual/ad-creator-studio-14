@@ -14,7 +14,7 @@ export type ImageModel = (typeof MODELS)[number];
 
 const Input = z.object({
   prompt: z.string().min(3).max(2000),
-  model: z.enum(MODELS).default("google/gemini-2.5-flash-image"),
+  model: z.enum(MODELS).default("openai/gpt-image-2"),
 });
 
 /**
