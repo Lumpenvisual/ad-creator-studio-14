@@ -429,12 +429,12 @@ function ResultsDashboard({ form, onReset }: { form: FormState; onReset: () => v
   const tone = (form.tone || "networking") as Tone;
   const copies = COPIES[tone];
 
-  const copyMap: { channel: string; key: keyof typeof copies; icon: React.ElementType; label: string }[] = [
+  const copyMap = ([
     { channel: "instagram", key: "instagram", icon: Instagram, label: "Instagram" },
     { channel: "linkedin", key: "linkedin", icon: Linkedin, label: "LinkedIn" },
     { channel: "whatsapp", key: "whatsapp", icon: MessageCircle, label: "WhatsApp" },
     { channel: "boletin", key: "email", icon: MailIcon, label: "Email / Boletín" },
-  ].filter((c) => form.channels.includes(c.channel));
+  ] as const).filter((c) => form.channels.includes(c.channel));
 
   const gradients = [
     "from-accent/30 via-accent/10 to-transparent",
