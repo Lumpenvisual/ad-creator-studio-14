@@ -415,18 +415,18 @@ const PALETTE = [
   { id: "black", label: "Negro", bg: BLACK, fg: WHITE },
 ] as const;
 
-function CreatorView() {
+function CreatorView({ prefill }: { prefill?: BannerSearch }) {
   const listAssetsFn = useServerFn(listBrandAssets);
   const { data: assetsData } = useQuery({ queryKey: ["brand_assets"], queryFn: () => listAssetsFn() });
   const assets = (assetsData?.assets ?? []) as AssetRow[];
   const byKind = useMemo(() => Object.fromEntries(assets.map((a) => [a.kind, a])), [assets]);
 
   const [format, setFormat] = useState<Format>("square");
-  const [eventType, setEventType] = useState<EventType>("rituales");
+  const [eventType, setEventType] = useState<EventType>(prefill?.eventType ?? "rituales");
   const [paletteId, setPaletteId] = useState<typeof PALETTE[number]["id"]>("green");
-  const [title, setTitle] = useState("Ceremonia de Grados 2026");
-  const [date, setDate] = useState("15 Junio · 4:00 p.m.");
-  const [place, setPlace] = useState("Teatro Universitario · UdeA");
+  const [title, setTitle] = useState(prefill?.title ?? "Ceremonia de Grados 2026");
+  const [date, setDate] = useState(prefill?.date ?? "15 Junio · 4:00 p.m.");
+  const [place, setPlace] = useState(prefill?.place ?? "Teatro Universitario · UdeA");
   const [downloading, setDownloading] = useState(false);
 
   const canvasRef = useRef<HTMLDivElement>(null);
