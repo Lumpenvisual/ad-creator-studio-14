@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { verifyState } from "@/lib/google-drive.functions";
+import { verifyState } from "@/lib/google-drive.server";
 
 export const Route = createFileRoute("/api/google/callback")({
   server: {
