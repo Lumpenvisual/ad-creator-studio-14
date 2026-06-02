@@ -264,7 +264,7 @@ function Editor() {
                       format === f ? "bg-primary text-primary-foreground" : "bg-card ring-1 ring-border text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    {FORMAT_DIM[f].label}
+                    {FORMAT_LABEL[f]}
                   </button>
                 ))}
               </div>
@@ -278,7 +278,7 @@ function Editor() {
                   <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">Descargar PNG</DropdownMenuLabel>
                   {(Object.keys(FORMAT_DIM) as Format[]).map((f) => (
                     <DropdownMenuItem key={`dl-${f}`} onClick={() => handleExport(f)}>
-                      <Download className="size-4" /> {FORMAT_DIM[f].label}
+                      <Download className="size-4" /> {FORMAT_LABEL[f]}
                     </DropdownMenuItem>
                   ))}
                   <DropdownMenuSeparator />
@@ -291,7 +291,7 @@ function Editor() {
                       disabled={!drive?.connected}
                       onClick={() => handleUploadDrive(f)}
                     >
-                      <HardDrive className="size-4" /> {FORMAT_DIM[f].label}
+                      <HardDrive className="size-4" /> {FORMAT_LABEL[f]}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
