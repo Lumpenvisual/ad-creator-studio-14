@@ -320,5 +320,5 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
 
 function formatDate(iso: string, lang: "es" | "en" = "es") {
   const d = new Date(iso);
-  return d.toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" });
+  return d.toLocaleDateString(lang === "en" ? "en-US" : "es-ES", { day: "numeric", month: "short", year: "numeric" });
 }
