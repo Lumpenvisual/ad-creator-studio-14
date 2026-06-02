@@ -119,16 +119,16 @@ function Dashboard() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["banners"] });
-      toast.success("Banner eliminado");
+      toast.success(t("dash.toast.deleted"));
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "No se pudo eliminar"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Error"),
   });
 
   const duplicateMut = useMutation({
     mutationFn: async (b: Banner) => {
       const { error } = await supabase.from("banners").insert({
         user_id: user!.id,
-        name: `${b.name} (copia)`,
+        name: `${b.name} (${lang === "es" ? "copia" : "copy"})`,
         headline: b.headline,
         body_text: b.body_text,
         image_url: b.image_url,
@@ -140,9 +140,9 @@ function Dashboard() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["banners"] });
-      toast.success("Banner duplicado");
+      toast.success(t("dash.toast.duplicated"));
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "No se pudo duplicar"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Error"),
   });
 
   if (!user) return null;
