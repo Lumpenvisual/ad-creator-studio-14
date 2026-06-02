@@ -272,11 +272,11 @@ function Editor() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button disabled={!imageUrl || exporting}>
-                    <Download className="size-4" /> Export
+                    <Download className="size-4" /> {t("editor.export")}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">Descargar PNG</DropdownMenuLabel>
+                  <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">{t("editor.export.png")}</DropdownMenuLabel>
                   {(Object.keys(FORMAT_DIM) as Format[]).map((f) => (
                     <DropdownMenuItem key={`dl-${f}`} onClick={() => handleExport(f)}>
                       <Download className="size-4" /> {FORMAT_LABEL[f]}
@@ -284,7 +284,7 @@ function Editor() {
                   ))}
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                    Google Drive {drive?.connected ? "" : "(no conectado)"}
+                    {t("editor.export.drive")} {drive?.connected ? "" : t("editor.export.driveOff")}
                   </DropdownMenuLabel>
                   {(Object.keys(FORMAT_DIM) as Format[]).map((f) => (
                     <DropdownMenuItem
