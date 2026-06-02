@@ -562,17 +562,18 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
       ctx.fillStyle = palette.fg;
       ctx.fillRect(w * 0.08, h * 0.5, w * 0.06, 6);
 
-      // title
+      // title (auto-scaled to safe-zone)
       ctx.fillStyle = palette.fg;
       ctx.textBaseline = "top";
-      ctx.font = `bold ${Math.round(w * 0.06)}px Georgia, serif`;
-      wrap(ctx, title, w * 0.08, h * 0.52, w * 0.84, Math.round(w * 0.07));
+      const baseTitlePx = Math.round(w * 0.06 * scaleFactor);
+      ctx.font = `bold ${baseTitlePx}px Georgia, serif`;
+      wrap(ctx, titleClean, w * 0.08, h * 0.52, w * 0.84, Math.round(baseTitlePx * 1.15));
       // date
       ctx.font = `${Math.round(w * 0.028)}px Georgia, serif`;
-      ctx.fillText(date, w * 0.08, h * 0.78);
+      ctx.fillText(dateClean, w * 0.08, h * 0.78);
       // place
       ctx.font = `${Math.round(w * 0.024)}px Georgia, serif`;
-      ctx.fillText(place, w * 0.08, h * 0.84);
+      ctx.fillText(placeClean, w * 0.08, h * 0.84);
 
       if (evt.trademark) {
         ctx.font = `${Math.round(w * 0.018)}px Georgia, serif`;
