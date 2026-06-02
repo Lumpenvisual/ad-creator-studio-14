@@ -494,7 +494,24 @@ function CreatorView({ prefill }: { prefill?: BannerSearch }) {
       ctx.fillStyle = palette.bg;
       ctx.fillRect(0, 0, w, h);
 
-      // logo
+      // AI background
+      if (bgUrl) {
+        try {
+          const bg = new Image();
+          bg.crossOrigin = "anonymous";
+          await new Promise<void>((res, rej) => { bg.onload = () => res(); bg.onerror = () => rej(); bg.src = bgUrl; });
+          // cover
+          const r = Math.max(w / bg.width, h / bg.height);
+          const iw = bg.width * r, ih = bg.height * r;
+          ctx.drawImage(bg, (w - iw) / 2, (h - ih) / 2, iw, ih);
+          // dark gradient overlay for legibility
+          const g = ctx.createLinearGradient(0, h * 0.4, 0, h);
+          g.addColorStop(0, "rgba(0,0,0,0)");
+          g.addColorStop(1, palette.id === "white" ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.55)");
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, w, h);
+        } catch {}
+      }
       if (logo?.url) {
         try {
           const img = new Image();
